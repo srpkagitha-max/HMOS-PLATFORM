@@ -115,12 +115,22 @@ function renderSuperAdmin(message = "", status = "") {
     try {
       await loginSuperAdmin(email, password);
     } catch (error) {
+      console.error("HMOS Firebase login error:", error);
       const messages = {
         "auth/invalid-credential": "Incorrect email or password.",
-        "auth/too-many-requests": "Too many attempts. Please wait and try again.",
-        "auth/network-request-failed": "Network error. Check your internet connection."
+        "auth/invalid-login-credentials": "Incorrect email or password.",
+        "auth/user-not-found": "No Firebase Authentication user exists for this email.",
+        "auth/wrong-password": "The password is incorrect.",
+        "auth/user-disabled": "This account has been disabled in Firebase Authentication.",
+        "auth/too-many-requests": "Too many attempts. Wait a few minutes and try again.",
+        "auth/network-request-failed": "Network error. Check your internet connection.",
+        "auth/unauthorized-domain": "This website domain is not authorized in Firebase Authentication.",
+        "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication.",
+        "auth/invalid-api-key": "The Firebase API key in firebase-config.js is invalid.",
+        "auth/app-deleted": "Firebase was not initialized correctly."
       };
-      messageEl.textContent = messages[error.code] || "Login failed. Please verify your credentials.";
+      const code = error?.code || "unknown-error";
+      messageEl.textContent = `${messages[code] || "Login failed."} Error: ${code}`;
       messageEl.className = "form-message show error";
       button.disabled = false;
       button.innerHTML = "Secure Login <span>→</span>";
