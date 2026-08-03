@@ -1,19 +1,22 @@
-# HMOS Platform — V2.0 Foundation
-
-Mobile-upload-safe foundation for **Hostel Management Operating System**.
+# HMOS Platform — V2.1 Super Admin Foundation
 
 ## Included
-- Premium institute login landing page
+- Premium institute landing page
 - Firebase Email/Password Super Admin login
-- Authenticated foundation console
-- PWA shell and offline cache
-- GitHub Pages branch deployment (no build tools or nested folders required)
+- Firestore-backed authorization using `users/{uid}`
+- Super Admin dashboard
+- Institute list and create-institute workflow
+- Multi-institute starter security rules
+- PWA shell and GitHub Pages root deployment
 
-## Deployment
-Upload every file to the repository root. In **Settings → Pages**, select:
-- Source: Deploy from a branch
-- Branch: main
-- Folder: /(root)
+## Required one-time setup
+1. Create the Super Admin account in Firebase Authentication.
+2. Copy that user's UID.
+3. In Firestore, create document `users/{UID}` with:
+   - `userType`: `superAdmin`
+   - `accountStatus`: `active`
+   - `displayName`: your preferred administrator name
+4. Publish the included `firestore.rules` in Firestore → Rules.
 
-## Current security state
-Firestore remains deny-by-default. Institute verification is intentionally disabled until secure multi-institute rules and server-side verification are added.
+## Security note
+Institute portal passwords are not stored in client-side code. Secure password generation and verification will be added through a server function in the next build.

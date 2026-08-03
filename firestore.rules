@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isActiveSuperAdmin() {
+      return signedIn()
+        && userDoc().data.userType == 'superAdmin'
+        && userDoc().data.accountStatus == 'active';
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isActiveSuperAdmin());
+      allow create, update, delete: if false;
+    }
+
+    match /institutes/{instituteId} {
+      allow read, create, update: if isActiveSuperAdmin();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
