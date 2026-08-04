@@ -1,3 +1,9 @@
+## v2.6.3 — Save Timeout Hotfix
+- Prevents Edit Institute from remaining on “Saving…” indefinitely.
+- Saves the main institute record first.
+- Syncs instituteAccess as a secondary, time-limited operation.
+- Adds clear timeout error messages and always restores the button.
+
 ## V2.6.1 — Institute Update + PWA Install Hotfix
 - Atomic institute and instituteAccess updates.
 - Exact Firestore error codes in the UI.
