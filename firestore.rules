@@ -9,24 +9,37 @@ service cloud.firestore {
         (userDoc().data.userType == 'superAdmin' && userDoc().data.accountStatus == 'active')
       );
     }
+
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isActiveSuperAdmin());
       allow create, update, delete: if false;
     }
+
     match /institutes/{instituteId} {
-      allow read, create, update: if isActiveSuperAdmin();
+      allow get, list, create, update: if isActiveSuperAdmin();
       allow delete: if false;
     }
+
     match /instituteAccess/{instituteCode} {
+      // Login reads one known institute code. Collection listing stays blocked.
       allow get: if true;
       allow list: if false;
       allow create: if isActiveSuperAdmin();
+
+      // Development first-login password change.
+      // Only these three fields may change without Firebase Auth.
       allow update: if isActiveSuperAdmin() || (
         resource.data.status == 'active' &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['passwordHash','mustChangePassword','updatedAt'])
+        request.resource.data.instituteId == resource.data.instituteId &&
+        request.resource.data.instituteCode == resource.data.instituteCode &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['passwordHash', 'mustChangePassword', 'updatedAt'])
       );
       allow delete: if false;
     }
-    match /{document=**} { allow read, write: if false; }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

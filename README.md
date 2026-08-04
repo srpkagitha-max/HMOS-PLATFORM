@@ -41,3 +41,6 @@ Institute login, mandatory first-login password change, remembered non-sensitive
 
 ## V2.7.1 Institute Login Completion
 Institute login now remembers only the institute code, validates saved portal sessions against Firestore, handles slow networks with a timeout, and provides an access refresh control. Passwords are never stored in browser storage.
+
+### V2.7.2 deployment note
+After uploading the files, copy `firestore.rules` to Firebase Console → Firestore Database → Rules and press Publish. This step is required for first-login password change.

@@ -27,3 +27,9 @@
 - Renamed JavaScript modules so stale service-worker files cannot be reused.
 - Added one-time removal of old service workers and caches.
 - Registered a new V2.6.6 service worker with `updateViaCache: none`.
+
+## V2.7.2 – First Login Password Fix
+- Fixed first-login password change permission failure.
+- Added exact error messages and request timeout recovery.
+- Hardened Firestore rule so unauthenticated update can change only passwordHash, mustChangePassword and updatedAt.
+- Updated executable filenames and cache version to prevent stale JavaScript.
