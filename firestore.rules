@@ -16,18 +16,20 @@ service cloud.firestore {
     }
 
     match /institutes/{instituteId} {
-      allow get, list, create, update: if isActiveSuperAdmin();
+      allow get: if true;
+      allow list, create: if isActiveSuperAdmin();
+      allow update: if isActiveSuperAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentStudents', 'updatedAt']) &&
+        request.resource.data.currentStudents == resource.data.currentStudents + 1 &&
+        request.resource.data.currentStudents <= resource.data.studentLimit
+      );
       allow delete: if false;
     }
 
     match /instituteAccess/{instituteCode} {
-      // Login reads one known institute code. Collection listing stays blocked.
       allow get: if true;
       allow list: if false;
       allow create: if isActiveSuperAdmin();
-
-      // Development first-login password change.
-      // Only these three fields may change without Firebase Auth.
       allow update: if isActiveSuperAdmin() || (
         resource.data.status == 'active' &&
         request.resource.data.instituteId == resource.data.instituteId &&
@@ -38,17 +40,38 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-
     match /admissions/{admissionId} {
-      // Public institute portal can create one admission record.
-      // Reading/listing remains blocked until role-based Firebase Auth is added.
-      allow create: if request.resource.data.instituteCode is string
+      allow create: if request.resource.data.admissionId == admissionId
+        && request.resource.data.instituteCode is string
         && request.resource.data.instituteId is string
         && request.resource.data.studentId is string
         && request.resource.data.studentName is string
         && request.resource.data.parentPhone is string
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'approved'
+        && request.resource.data.studentAccountCreated == true;
       allow read, update, delete: if isActiveSuperAdmin();
+    }
+
+    match /students/{studentId} {
+      allow get: if true;
+      allow list: if isActiveSuperAdmin();
+      allow create: if request.resource.data.studentId == studentId
+        && request.resource.data.instituteId is string
+        && request.resource.data.instituteCode is string
+        && request.resource.data.studentName is string
+        && request.resource.data.accountStatus == 'active';
+      allow update, delete: if isActiveSuperAdmin();
+    }
+
+    match /studentAccess/{studentId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.resource.data.studentId == studentId
+        && request.resource.data.instituteId is string
+        && request.resource.data.passwordHash is string
+        && request.resource.data.mustChangePassword == true
+        && request.resource.data.accountStatus == 'active';
+      allow update, delete: if isActiveSuperAdmin();
     }
 
     match /{document=**} {

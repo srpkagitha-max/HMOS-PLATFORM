@@ -12,8 +12,8 @@
   <meta name="description" content="Hostel Management Operating System – Multi-Institute Hostel Management Platform" />
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="//www.gstatic.com" />
-  <link rel="manifest" href="/HMOS-PLATFORM/manifest.json?v=2.8.0" />
-  <link rel="stylesheet" href="styles.css?v=2.8.0" />
+  <link rel="manifest" href="/HMOS-PLATFORM/manifest.json?v=2.8.1" />
+  <link rel="stylesheet" href="styles.css?v=2.8.1" />
   <title>Hostel Management Operating System</title>
   <style>
     .boot-screen{min-height:100vh;background:#0f4d86;color:#fff;padding:18vh 8vw 8vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
@@ -51,16 +51,16 @@
   </script>
   <script>
     (function(){
-      const key = "hmos-cache-reset-2.8.0";
+      const key = "hmos-cache-reset-2.8.1";
       if (!localStorage.getItem(key)) {
         localStorage.setItem(key, "1");
         Promise.all([
           "caches" in window ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))) : Promise.resolve(),
           "serviceWorker" in navigator ? navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister()))) : Promise.resolve()
-        ]).finally(() => location.replace(location.pathname + "?v=2.8.0"));
+        ]).finally(() => location.replace(location.pathname + "?v=2.8.1"));
       }
     })();
   </script>
-  <script type="module" src="app-v2.8.0.js"></script>
+  <script type="module" src="app-v2.8.1.js"></script>
 </body>
 </html>
