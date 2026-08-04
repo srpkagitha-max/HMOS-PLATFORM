@@ -1,31 +1,22 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function isSuperAdmin() { return signedIn() && request.auth.token.email == "hmos.superadmin@gmail.com"; }
-
-    match /users/{userId} { allow read: if signedIn(); allow create, update, delete: if isSuperAdmin(); }
-    match /institutes/{instituteId} {
-      allow get: if true; allow list, create, delete: if isSuperAdmin();
-      allow update: if isSuperAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["currentStudents","updatedAt"]);
-    }
-    match /instituteAccess/{instituteCode} {
-      allow get: if true; allow list: if false; allow create, delete: if isSuperAdmin();
-      allow update: if isSuperAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["passwordHash","mustChangePassword","updatedAt"]);
-    }
-    match /admissions/{admissionId} {
-      allow create: if request.resource.data.admissionId == admissionId && request.resource.data.studentId is string && request.resource.data.instituteId is string && request.resource.data.instituteCode is string && request.resource.data.studentName is string && request.resource.data.parentName is string && request.resource.data.parentPhone is string;
-      allow get: if true; allow list, update, delete: if isSuperAdmin();
-    }
+    function signedIn(){ return request.auth != null; }
+    function isSuperAdmin(){ return signedIn() && request.auth.token.email == "hmos.superadmin@gmail.com"; }
+    match /users/{id} { allow read: if signedIn(); allow write: if isSuperAdmin(); }
+    match /institutes/{id} { allow get: if true; allow list, create, delete: if isSuperAdmin(); allow update: if isSuperAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["currentStudents","updatedAt"]); }
+    match /instituteAccess/{code} { allow get: if true; allow list: if false; allow create, delete: if isSuperAdmin(); allow update: if isSuperAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["passwordHash","mustChangePassword","updatedAt"]); }
+    match /admissions/{id} { allow create: if request.resource.data.admissionId == id && request.resource.data.studentId is string && request.resource.data.instituteCode is string; allow get: if true; allow list, update, delete: if isSuperAdmin(); }
     match /students/{studentId} {
-      allow create: if request.resource.data.studentId == studentId && request.resource.data.instituteId is string && request.resource.data.instituteCode is string && request.resource.data.studentName is string;
-      allow get: if true; allow list, update, delete: if isSuperAdmin();
+      allow create: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string;
+      allow get, list: if true;
+      allow update: if isSuperAdmin() || request.resource.data.instituteCode == resource.data.instituteCode;
+      allow delete: if isSuperAdmin();
     }
     match /studentAccess/{studentId} {
       allow get: if true; allow list: if false;
-      allow create: if request.resource.data.studentId == studentId && request.resource.data.instituteId is string && request.resource.data.instituteCode is string && request.resource.data.passwordHash is string;
-      allow update: if isSuperAdmin() || (resource.data.accountStatus == "active" && request.resource.data.studentId == resource.data.studentId && request.resource.data.instituteId == resource.data.instituteId && request.resource.data.instituteCode == resource.data.instituteCode && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["passwordHash","mustChangePassword","updatedAt"]));
+      allow create: if request.resource.data.studentId == studentId && request.resource.data.passwordHash is string;
+      allow update: if isSuperAdmin() || request.resource.data.studentId == resource.data.studentId;
       allow delete: if isSuperAdmin();
     }
     match /{document=**} { allow read, write: if false; }

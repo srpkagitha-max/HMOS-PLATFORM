@@ -1,3 +1,7 @@
+# HMOS V3.0.0
+
+Institute Admin and Student Management module. Upload the files and publish firestore.rules.
+
 # HMOS V2.9.0
 
 Student Login and Student Portal foundation. Upload the V2.9.0 files and publish firestore.rules.

@@ -1,3 +1,12 @@
+# HMOS V3.0.0 — Institute Admin & Student Management
+
+- Institute Admin dashboard
+- Student list and search
+- Student profile editing
+- Student login activation/deactivation
+- New admission shortcut
+- Mobile responsive management cards
+
 # HMOS Changelog
 
 ## V2.9.0
