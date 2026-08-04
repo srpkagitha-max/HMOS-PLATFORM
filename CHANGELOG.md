@@ -1,3 +1,9 @@
+# HMOS V2.8.2 – Admission Validation Fix
+
+- New executable filenames force Chrome to load the latest admission code.
+- Phone and Aadhaar inputs are normalized to digits before validation.
+- Admission save flow remains unchanged.
+
 # HMOS Changelog
 
 ## V2.8.1 — Admission Completion
