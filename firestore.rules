@@ -38,6 +38,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    match /admissions/{admissionId} {
+      // Public institute portal can create one admission record.
+      // Reading/listing remains blocked until role-based Firebase Auth is added.
+      allow create: if request.resource.data.instituteCode is string
+        && request.resource.data.instituteId is string
+        && request.resource.data.studentId is string
+        && request.resource.data.studentName is string
+        && request.resource.data.parentPhone is string
+        && request.resource.data.status == 'pending';
+      allow read, update, delete: if isActiveSuperAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

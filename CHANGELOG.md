@@ -1,3 +1,13 @@
+# HMOS V2.8.0 — New Admission Foundation
+
+- Working New Admission form from Institute Portal.
+- Auto-generated Student ID and Admission ID.
+- Student, parent, contact, joining and address fields.
+- Firestore admissions save with validation.
+- Admission success receipt with Print / Save PDF.
+- Mobile responsive form and print layout.
+- Updated PWA cache and Firestore Rules.
+
 # HMOS Changelog
 
 ## V2.7.1 – Institute Login Completion

@@ -1,3 +1,7 @@
+# HMOS V2.8.0
+
+Institute Portal + New Admission Foundation. Publish the included `firestore.rules` after deployment.
+
 # HMOS v2.6.4
 This hotfix prevents institute edits from hanging indefinitely and adds Firebase request timeouts.
 

@@ -33,3 +33,9 @@
 
 /* HMOS v2.7.1 — completed institute login UX */
 .password-input-wrap{position:relative}.password-input-wrap input{width:100%;padding-right:78px}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);min-width:56px;height:38px;border:0;border-radius:11px;background:#e7f2fb;color:#0b4e89;font-weight:850;cursor:pointer}.compact-link{margin:0;padding:0;border:0;background:transparent;font-size:12px}.portal-status .compact-link{margin-left:auto}@media(max-width:650px){.portal-status .compact-link{margin-left:0}}
+
+
+/* V2.8.0 New Admission */
+.admission-card,.admission-success-card{max-width:760px}.admission-card textarea{min-height:110px;resize:vertical}.success-check{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;background:#e5f7ed;color:#138552;font-size:46px;font-weight:900}.admission-success-card{text-align:center}.receipt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:26px 0;text-align:left}.receipt-grid article{border:1px solid #d8e3ed;background:#f7fafc;border-radius:18px;padding:18px}.receipt-grid span{display:block;color:#6c7a8b;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.receipt-grid strong{display:block;margin-top:7px;font-size:18px;overflow-wrap:anywhere}.receipt-grid small{display:block;margin-top:5px;color:#6c7a8b}.admission-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+@media(max-width:620px){.receipt-grid,.admission-actions{grid-template-columns:1fr}.admission-card .form-grid{grid-template-columns:1fr}}
+@media print{body{background:#fff}.hero,footer,.pwa-install-button,.admission-actions,#success-portal{display:none!important}.shell,.card{padding:0!important;margin:0!important;box-shadow:none!important;border:0!important}.admission-success-card{max-width:none!important}.receipt-grid{grid-template-columns:1fr 1fr!important}}
