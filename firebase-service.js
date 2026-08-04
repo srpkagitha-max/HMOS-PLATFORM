@@ -12,6 +12,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   collection,
   query,
   orderBy,
@@ -27,6 +28,7 @@ const db = getFirestore(firebaseApp);
 const persistenceReady = setPersistence(auth, browserLocalPersistence).catch(() => undefined);
 
 const normalizeCode = value => String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+const cleanText = value => String(value || "").trim();
 
 async function sha256(value) {
   const bytes = new TextEncoder().encode(value);
@@ -40,18 +42,12 @@ export async function loginSuperAdmin(email, password) {
   return credential.user;
 }
 
-export async function logoutCurrentUser() {
-  await signOut(auth);
-}
-
-export function watchAuth(callback) {
-  return onAuthStateChanged(auth, callback);
-}
+export async function logoutCurrentUser() { await signOut(auth); }
+export function watchAuth(callback) { return onAuthStateChanged(auth, callback); }
 
 export async function getCurrentUserProfile(uid) {
   const snapshot = await getDoc(doc(db, "users", uid));
-  if (!snapshot.exists()) return null;
-  return { id: snapshot.id, ...snapshot.data() };
+  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
 }
 
 export async function listInstitutes() {
@@ -69,8 +65,14 @@ export function generateTemporaryPassword() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
   const random = new Uint32Array(8);
   crypto.getRandomValues(random);
-  const body = [...random].map(value => alphabet[value % alphabet.length]).join("");
-  return `Hm@${body}`;
+  return `Hm@${[...random].map(value => alphabet[value % alphabet.length]).join("")}`;
+}
+
+function subscriptionDates(startValue, months = 12) {
+  const start = startValue ? new Date(startValue) : new Date();
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + Number(months || 12));
+  return { start, end };
 }
 
 export async function createInstitute(input, actorUid) {
@@ -78,44 +80,41 @@ export async function createInstitute(input, actorUid) {
   if (!instituteCode) throw Object.assign(new Error("Invalid institute code"), { code: "invalid-institute-code" });
 
   const accessRef = doc(db, "instituteAccess", instituteCode);
-  const accessSnapshot = await getDoc(accessRef);
-  if (accessSnapshot.exists()) throw Object.assign(new Error("Institute code already exists"), { code: "institute-code-exists" });
+  if ((await getDoc(accessRef)).exists()) {
+    throw Object.assign(new Error("Institute code already exists"), { code: "institute-code-exists" });
+  }
 
   const instituteId = `HMOS-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   const temporaryPassword = input.temporaryPassword || generateTemporaryPassword();
   const passwordHash = await sha256(`${instituteCode}:${temporaryPassword}`);
-  const now = new Date();
-  const subscriptionEnd = new Date(now);
-  subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+  const { start, end } = subscriptionDates(input.subscriptionStart, input.subscriptionMonths || 12);
 
   const record = {
     instituteId,
     instituteCode,
-    instituteName: input.instituteName.trim(),
+    instituteName: cleanText(input.instituteName),
     hostelType: input.hostelType,
-    ownerName: input.ownerName.trim(),
-    ownerPhone: input.ownerPhone.trim(),
-    subscriptionPlan: "yearly",
+    ownerName: cleanText(input.ownerName),
+    ownerPhone: cleanText(input.ownerPhone),
+    ownerEmail: cleanText(input.ownerEmail).toLowerCase(),
+    city: cleanText(input.city),
+    address: cleanText(input.address),
+    subscriptionPlan: Number(input.subscriptionMonths || 12) === 12 ? "yearly" : `${Number(input.subscriptionMonths || 12)}-months`,
     subscriptionStatus: "active",
-    subscriptionStart: Timestamp.fromDate(now),
-    subscriptionEnd: Timestamp.fromDate(subscriptionEnd),
+    subscriptionStart: Timestamp.fromDate(start),
+    subscriptionEnd: Timestamp.fromDate(end),
     status: "active",
     studentLimit: Number(input.studentLimit),
-    enabledModules: {
-      admissions: true,
-      students: true,
-      rooms: true,
-      fees: true,
-      entryExit: false,
-      food: false
-    },
+    currentStudents: 0,
+    enabledModules: { admissions: true, students: true, rooms: true, fees: true, entryExit: false, food: false },
     portalAccessStatus: "active",
+    mustChangePassword: true,
     createdAt: serverTimestamp(),
     createdBy: actorUid,
     updatedAt: serverTimestamp(),
     updatedBy: actorUid,
     isArchived: false,
-    version: 2
+    version: 2.4
   };
 
   await setDoc(doc(db, "institutes", instituteId), record);
@@ -126,11 +125,98 @@ export async function createInstitute(input, actorUid) {
     passwordHash,
     status: "active",
     subscriptionEnd: record.subscriptionEnd,
+    mustChangePassword: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
-
   return { id: instituteId, ...record, temporaryPassword };
+}
+
+export async function updateInstitute(instituteId, input, actorUid) {
+  const ref = doc(db, "institutes", instituteId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
+  const current = snap.data();
+  const updates = {
+    instituteName: cleanText(input.instituteName),
+    hostelType: input.hostelType,
+    ownerName: cleanText(input.ownerName),
+    ownerPhone: cleanText(input.ownerPhone),
+    ownerEmail: cleanText(input.ownerEmail).toLowerCase(),
+    city: cleanText(input.city),
+    address: cleanText(input.address),
+    studentLimit: Number(input.studentLimit),
+    updatedAt: serverTimestamp(),
+    updatedBy: actorUid
+  };
+  await updateDoc(ref, updates);
+  await updateDoc(doc(db, "instituteAccess", current.instituteCode), {
+    instituteName: updates.instituteName,
+    updatedAt: serverTimestamp()
+  });
+  return { id: instituteId, ...current, ...updates };
+}
+
+export async function setInstituteStatus(instituteId, status, actorUid) {
+  const ref = doc(db, "institutes", instituteId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
+  const current = snap.data();
+  await updateDoc(ref, { status, portalAccessStatus: status, updatedAt: serverTimestamp(), updatedBy: actorUid });
+  await updateDoc(doc(db, "instituteAccess", current.instituteCode), { status, updatedAt: serverTimestamp() });
+}
+
+export async function archiveInstitute(instituteId, actorUid) {
+  const ref = doc(db, "institutes", instituteId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
+  const current = snap.data();
+  await updateDoc(ref, { isArchived: true, status: "inactive", portalAccessStatus: "inactive", archivedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: actorUid });
+  await updateDoc(doc(db, "instituteAccess", current.instituteCode), { status: "inactive", updatedAt: serverTimestamp() });
+}
+
+export async function restoreInstitute(instituteId, actorUid) {
+  const ref = doc(db, "institutes", instituteId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
+  const current = snap.data();
+  await updateDoc(ref, { isArchived: false, status: "active", portalAccessStatus: "active", updatedAt: serverTimestamp(), updatedBy: actorUid });
+  await updateDoc(doc(db, "instituteAccess", current.instituteCode), { status: "active", updatedAt: serverTimestamp() });
+}
+
+export async function resetInstitutePassword(instituteId, newPassword, actorUid) {
+  const ref = doc(db, "institutes", instituteId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
+  const current = snap.data();
+  const password = newPassword || generateTemporaryPassword();
+  const passwordHash = await sha256(`${current.instituteCode}:${password}`);
+  await updateDoc(doc(db, "instituteAccess", current.instituteCode), {
+    passwordHash,
+    mustChangePassword: true,
+    updatedAt: serverTimestamp()
+  });
+  await updateDoc(ref, { mustChangePassword: true, updatedAt: serverTimestamp(), updatedBy: actorUid });
+  return password;
+}
+
+export async function renewSubscription(instituteId, months, actorUid) {
+  const ref = doc(db, "institutes", instituteId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
+  const current = snap.data();
+  const existingEnd = current.subscriptionEnd?.toDate?.() || new Date();
+  const base = existingEnd > new Date() ? existingEnd : new Date();
+  const end = new Date(base);
+  end.setMonth(end.getMonth() + Number(months || 12));
+  await updateDoc(ref, {
+    subscriptionEnd: Timestamp.fromDate(end), subscriptionStatus: "active", status: "active", portalAccessStatus: "active",
+    updatedAt: serverTimestamp(), updatedBy: actorUid
+  });
+  await updateDoc(doc(db, "instituteAccess", current.instituteCode), {
+    subscriptionEnd: Timestamp.fromDate(end), status: "active", updatedAt: serverTimestamp()
+  });
+  return end;
 }
 
 export async function loginInstitute(instituteCode, password) {

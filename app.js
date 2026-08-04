@@ -1,397 +1,66 @@
 import {
-  loginSuperAdmin,
-  logoutCurrentUser,
-  watchAuth,
-  getCurrentUserProfile,
-  listInstitutes,
-  createInstitute,
-  loginInstitute,
-  generateInstituteCode,
-  generateTemporaryPassword
+  loginSuperAdmin, logoutCurrentUser, watchAuth, listInstitutes, createInstitute, loginInstitute,
+  generateInstituteCode, generateTemporaryPassword, updateInstitute, setInstituteStatus,
+  archiveInstitute, restoreInstitute, resetInstitutePassword, renewSubscription
 } from "./firebase-service.js";
 
 const app = document.querySelector("#app");
 if (window.__HMOS_BOOT_TIMER__) clearTimeout(window.__HMOS_BOOT_TIMER__);
+const SUPER_ADMIN_EMAIL = "hmos.superadmin@gmail.com";
+const CACHE_KEY = "hmosInstitutesCacheV24";
 const state = {
-  screen: "institute",
-  authUser: null,
-  profile: null,
-  institutes: [],
-  loading: false,
-  lastCredentials: null,
-  instituteSession: null
+  screen: "institute", authUser: null, institutes: [], instituteSession: null,
+  lastCredentials: null, selectedId: null, search: "", filter: "all", notice: null
 };
 
-const INSTITUTES_CACHE_KEY = "hmosInstitutesCacheV23";
-const SUPER_ADMIN_EMAIL = "hmos.superadmin@gmail.com";
+const esc = (v="") => String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE_KEY)||"[]"); } catch { return []; } };
+const writeCache = items => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(items)); } catch {} };
+const dateOf = value => value?.toDate?.() || (value ? new Date(value) : null);
+const formatDate = value => { const d=dateOf(value); return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-IN") : "—"; };
+const isExpired = item => { const d=dateOf(item.subscriptionEnd); return Boolean(d && d < new Date()); };
+const effectiveStatus = item => item.isArchived ? "archived" : isExpired(item) ? "expired" : (item.status || "active");
 
-function readInstitutesCache() {
-  try { return JSON.parse(localStorage.getItem(INSTITUTES_CACHE_KEY) || "[]"); } catch { return []; }
+function brand(){return `<div class="brand"><div class="brand-mark"><span class="roof"></span><span class="door"></span><span class="shield">✓</span></div><div><p class="eyebrow">HMOS</p><h1>Hostel Management<br class="mobile-break"/> Operating System</h1><p class="tagline">Smart Multi-Institute Hostel Management Platform</p></div></div>`;}
+function shell(content,compact=false){return `<main class="shell ${compact?"shell-compact":""}"><section class="hero">${brand()}<div class="trust-row"><span>Secure access</span><span>Multi-institute</span><span>Mobile ready</span></div></section>${content}<footer>Powered by <strong>Hostel Management Operating System</strong></footer></main>`;}
+function field(id,label,type="text",placeholder="",value="",extra=""){return `<label class="field" for="${id}"><span>${label}</span><input id="${id}" type="${type}" placeholder="${placeholder}" value="${esc(value)}" ${extra}/></label>`;}
+function notify(message,type="success-message"){state.notice={message,type};}
+function consumeNotice(){const n=state.notice; state.notice=null; return n;}
+
+function renderInstituteLogin(message=""){
+  app.innerHTML=shell(`<section class="card login-card"><div class="card-heading"><span class="step">Institute access</span><h2>Institute Login</h2><p>Enter credentials issued by HMOS.</p></div><form id="institute-form">${field("institute-id","Institute Code","text","Example: ABCO1234")}${field("institute-password","Institute Password","password","Enter password","","autocomplete='current-password'")}<p id="form-message" class="form-message ${message?"show error":""}">${esc(message)}</p><button class="primary">Continue <span>→</span></button></form><button id="super-admin-link" class="text-link">Super Admin Login</button></section>`);
+  document.querySelector("#super-admin-link").onclick=()=>{state.screen="super-admin";render();};
+  document.querySelector("#institute-form").onsubmit=async e=>{e.preventDefault();const b=e.currentTarget.querySelector("button"),m=document.querySelector("#form-message");b.disabled=true;b.textContent="Checking…";try{state.instituteSession=await loginInstitute(document.querySelector("#institute-id").value,document.querySelector("#institute-password").value);state.screen="institute-portal";render();}catch(err){m.textContent={"invalid-institute-credential":"Incorrect institute code or password.","institute-inactive":"This institute account is inactive.","subscription-expired":"Subscription expired."}[err.code]||"Institute login failed.";m.className="form-message show error";b.disabled=false;b.innerHTML="Continue <span>→</span>";}};
 }
-
-function writeInstitutesCache(items) {
-  try { localStorage.setItem(INSTITUTES_CACHE_KEY, JSON.stringify(items)); } catch {}
+function renderSuperAdmin(message=""){
+  app.innerHTML=shell(`<section class="card login-card"><button id="back" class="back">← Institute Login</button><div class="card-heading"><span class="step">Restricted access</span><h2>Super Admin Login</h2><p>Only the authorized HMOS administrator can continue.</p></div><form id="admin-form">${field("admin-email","Email Address","email","Registered email","","autocomplete='username'")}${field("admin-password","Password","password","Enter password","","autocomplete='current-password'")}<p id="form-message" class="form-message ${message?"show error":""}">${esc(message)}</p><button id="admin-submit" class="primary">Secure Login <span>→</span></button></form></section>`,true);
+  document.querySelector("#back").onclick=()=>{state.screen="institute";render();};
+  document.querySelector("#admin-form").onsubmit=async e=>{e.preventDefault();const b=document.querySelector("#admin-submit"),m=document.querySelector("#form-message");b.disabled=true;b.textContent="Signing in…";try{await loginSuperAdmin(document.querySelector("#admin-email").value.trim(),document.querySelector("#admin-password").value);}catch(err){m.textContent=(err.code==="auth/invalid-credential"?"Incorrect email or password.":"Login failed.")+` Error: ${err.code||"unknown"}`;m.className="form-message show error";b.disabled=false;b.innerHTML="Secure Login <span>→</span>";}};
 }
+function renderInstitutePortal(){const i=state.instituteSession;app.innerHTML=shell(`<section class="card login-card"><span class="step success-step">Institute access verified</span><h2>${esc(i?.instituteName||"Institute Portal")}</h2><p class="blocked-copy">Code: <strong>${esc(i?.instituteCode||"")}</strong></p><div class="notice"><strong>Portal ready</strong><p>Students, rooms, fees and admissions will be added in the next phase.</p></div><button id="institute-logout" class="primary">Return to Login</button></section>`,true);document.querySelector("#institute-logout").onclick=()=>{state.instituteSession=null;state.screen="institute";render();};}
+function dashboardShell(content){return shell(`<section class="card dashboard-card wide-card"><div class="dashboard-head"><div><span class="step success-step">Authorized platform access</span><h2>Super Admin Dashboard</h2><p>${esc(state.authUser?.email||"")}</p></div><button id="logout" class="secondary">Logout</button></div>${content}</section>`,true);}
 
-const escapeHtml = (value = "") => String(value)
-  .replaceAll("&", "&amp;")
-  .replaceAll("<", "&lt;")
-  .replaceAll(">", "&gt;")
-  .replaceAll('"', "&quot;")
-  .replaceAll("'", "&#039;");
+function filteredInstitutes(){const q=state.search.toLowerCase();return state.institutes.filter(i=>{const status=effectiveStatus(i);const matchesFilter=state.filter==="all"||status===state.filter;const hay=`${i.instituteName||""} ${i.instituteCode||""} ${i.ownerName||""} ${i.ownerPhone||""} ${i.city||""}`.toLowerCase();return matchesFilter&&(!q||hay.includes(q));});}
+function metric(status){return state.institutes.filter(i=>effectiveStatus(i)===status).length;}
+function instituteRows(){const items=filteredInstitutes();if(!items.length)return `<div class="empty-state"><strong>No matching institutes.</strong><p>Change search/filter or create a new institute.</p></div>`;return `<div class="institute-list">${items.map(i=>{const s=effectiveStatus(i);return `<article class="institute-row pro-row"><div class="avatar">${esc((i.instituteName||"H")[0].toUpperCase())}</div><div class="institute-main"><strong>${esc(i.instituteName)}</strong><span>${esc(i.instituteCode)} · ${esc(i.hostelType||"hostel")} · ${esc(i.city||"No city")}</span><small>${esc(i.ownerName||"")} · ${esc(i.ownerPhone||"")}</small></div><span class="pill ${s}-pill">${s}</span><div class="row-meta"><strong>${Number(i.currentStudents||0)}/${Number(i.studentLimit||0)}</strong><small>Students</small></div><button class="row-menu" data-action="view" data-id="${esc(i.id)}">Manage</button></article>`}).join("")}</div>`;}
 
-function brand() {
-  return `
-    <div class="brand">
-      <div class="brand-mark" aria-hidden="true">
-        <span class="roof"></span><span class="door"></span><span class="shield">✓</span>
-      </div>
-      <div>
-        <p class="eyebrow">HMOS</p>
-        <h1>Hostel Management<br class="mobile-break" /> Operating System</h1>
-        <p class="tagline">Smart Multi-Institute Hostel Management Platform</p>
-      </div>
-    </div>`;
-}
+function renderAdminDashboard(){const n=consumeNotice();app.innerHTML=dashboardShell(`<div class="metric-grid four"><article><span>Total Institutes</span><strong>${state.institutes.filter(i=>!i.isArchived).length}</strong><small>Registered on HMOS</small></article><article><span>Active</span><strong>${metric("active")}</strong><small>Operational accounts</small></article><article><span>Expired</span><strong>${metric("expired")}</strong><small>Need renewal</small></article><article><span>Archived</span><strong>${metric("archived")}</strong><small>Soft deleted</small></article></div><div class="section-title"><div><h3>Institute Management Pro</h3><p>Search, edit, control access and renew subscriptions.</p></div><button id="open-create" class="primary compact-primary">+ Create Institute</button></div>${n?`<p class="form-message show ${n.type}">${esc(n.message)}</p>`:""}${state.lastCredentials?credentialCard():""}<div class="toolbar"><input id="search" placeholder="Search name, code, owner, phone or city" value="${esc(state.search)}"/><select id="filter"><option value="all">All</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="expired">Expired</option><option value="archived">Archived</option></select></div>${instituteRows()}`);bindCommon();document.querySelector("#open-create").onclick=()=>{state.screen="create";render();};document.querySelector("#search").oninput=e=>{state.search=e.target.value;document.querySelector(".institute-list, .empty-state")?.remove();document.querySelector(".toolbar").insertAdjacentHTML("afterend",instituteRows());bindRowButtons();};document.querySelector("#filter").value=state.filter;document.querySelector("#filter").onchange=e=>{state.filter=e.target.value;renderAdminDashboard();};bindRowButtons();bindCredentialButtons();}
+function credentialCard(){const c=state.lastCredentials;return `<div class="credentials-card"><div><span class="step success-step">Institute login generated</span><strong>${esc(c.instituteCode)}</strong><small>${esc(c.instituteName||"")} · ID ${esc(c.instituteId)}</small></div><div class="credential-value"><span>Temporary Password</span><code>${esc(c.temporaryPassword)}</code><small>Valid until ${esc(c.subscriptionEnd)}</small></div><div class="credential-actions"><button id="copy-credentials" class="secondary">Copy</button><button id="share-whatsapp" class="secondary">WhatsApp</button></div></div>`;}
+function bindCredentialButtons(){if(!state.lastCredentials)return;const c=state.lastCredentials,text=`HMOS Institute Login\nInstitute: ${c.instituteName||""}\nCode: ${c.instituteCode}\nPassword: ${c.temporaryPassword}\nLogin: ${location.origin}${location.pathname}`;document.querySelector("#copy-credentials").onclick=async e=>{try{await navigator.clipboard.writeText(text);e.target.textContent="Copied";}catch{e.target.textContent="Copy failed";}};document.querySelector("#share-whatsapp").onclick=()=>window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank","noopener");}
+function bindRowButtons(){document.querySelectorAll("[data-action='view']").forEach(b=>b.onclick=()=>{state.selectedId=b.dataset.id;state.screen="manage";render();});}
+function bindCommon(){document.querySelector("#logout").onclick=async()=>{await logoutCurrentUser();state.screen="super-admin";state.institutes=[];render();};}
 
-function shell(content, compact = false) {
-  return `
-    <main class="shell ${compact ? "shell-compact" : ""}">
-      <section class="hero">${brand()}
-        <div class="trust-row"><span>Secure access</span><span>Multi-institute</span><span>Mobile ready</span></div>
-      </section>
-      ${content}
-      <footer>Powered by <strong>Hostel Management Operating System</strong></footer>
-    </main>`;
-}
+function renderCreate(){app.innerHTML=dashboardShell(`<button id="back-dashboard" class="back">← Dashboard</button><div class="card-heading"><span class="step">Institute onboarding</span><h2>Create Institute</h2><p>Create identity, limits, subscription and portal credentials.</p></div>${instituteForm()}`);bindCommon();document.querySelector("#back-dashboard").onclick=()=>{state.screen="dashboard";render();};bindInstituteForm();}
+function instituteForm(i={}){return `<form id="institute-form-pro" class="form-grid"><label class="field"><span>Institute Code</span><div class="input-action"><input id="f-code" value="${esc(i.instituteCode||"")}" placeholder="Auto-generated or enter code" ${i.id?"readonly":""}/>${i.id?"":"<button id='gen-code' class='mini-button' type='button'>Generate</button>"}</div></label>${field("f-name","Institute Name","text","Enter hostel name",i.instituteName||"")}<label class="field"><span>Hostel Type</span><select id="f-type"><option value="boys">Boys Hostel</option><option value="girls">Girls Hostel</option><option value="mixed">Mixed Hostel</option></select></label>${field("f-owner","Owner Name","text","Enter owner name",i.ownerName||"")}${field("f-phone","Owner Phone","tel","10-digit mobile number",i.ownerPhone||"")}${field("f-email","Owner Email","email","Optional email",i.ownerEmail||"")}${field("f-city","City / Town","text","Enter city",i.city||"")}${field("f-limit","Student Limit","number","100",i.studentLimit||100,"min='1'")}<label class="field form-wide"><span>Address</span><textarea id="f-address" placeholder="Complete address">${esc(i.address||"")}</textarea></label>${i.id?"":`<label class="field"><span>Subscription</span><select id="f-months"><option value="12">1 Year</option><option value="6">6 Months</option><option value="24">2 Years</option></select></label><label class="field"><span>Temporary Password</span><div class="input-action"><input id="f-password"/><button id="gen-password" class="mini-button" type="button">Generate</button></div></label>`}<p id="form-msg" class="form-message form-wide"></p><button id="save-institute" class="primary form-wide">${i.id?"Update Institute":"Save Institute"} <span>→</span></button></form>`;}
+function collectForm(){return {instituteCode:document.querySelector("#f-code").value.trim(),instituteName:document.querySelector("#f-name").value.trim(),hostelType:document.querySelector("#f-type").value,ownerName:document.querySelector("#f-owner").value.trim(),ownerPhone:document.querySelector("#f-phone").value.trim(),ownerEmail:document.querySelector("#f-email").value.trim(),city:document.querySelector("#f-city").value.trim(),studentLimit:document.querySelector("#f-limit").value,address:document.querySelector("#f-address").value.trim(),subscriptionMonths:document.querySelector("#f-months")?.value,temporaryPassword:document.querySelector("#f-password")?.value.trim()};}
+function validateInput(x){return x.instituteName&&x.ownerName&&/^\d{10}$/.test(x.ownerPhone)&&Number(x.studentLimit)>0;}
+function bindInstituteForm(existing=null){document.querySelector("#f-type").value=existing?.hostelType||"boys";if(!existing){document.querySelector("#f-password").value=generateTemporaryPassword();document.querySelector("#gen-password").onclick=()=>document.querySelector("#f-password").value=generateTemporaryPassword();document.querySelector("#gen-code").onclick=()=>document.querySelector("#f-code").value=generateInstituteCode(document.querySelector("#f-name").value||"HMOS");}document.querySelector("#institute-form-pro").onsubmit=async e=>{e.preventDefault();const x=collectForm(),m=document.querySelector("#form-msg"),b=document.querySelector("#save-institute");if(!validateInput(x)||(!existing&&(!x.instituteCode||!x.temporaryPassword))){m.textContent="Complete required fields and enter a valid 10-digit phone number.";m.className="form-message show error form-wide";return;}b.disabled=true;b.textContent="Saving…";try{if(existing){const updated=await updateInstitute(existing.id,x,state.authUser.uid);state.institutes=state.institutes.map(i=>i.id===existing.id?{...i,...updated}:i);notify("Institute updated successfully.");}else{const created=await createInstitute(x,state.authUser.uid);state.institutes=[created,...state.institutes];state.lastCredentials={instituteId:created.instituteId,instituteCode:created.instituteCode,instituteName:created.instituteName,temporaryPassword:created.temporaryPassword,subscriptionEnd:formatDate(created.subscriptionEnd)};notify("Institute created successfully.");}writeCache(state.institutes);state.screen="dashboard";render();}catch(err){m.textContent=err.code==="institute-code-exists"?"Institute code already exists.":"Could not save institute. Check Firestore rules.";m.className="form-message show error form-wide";b.disabled=false;b.innerHTML=`${existing?"Update":"Save"} Institute <span>→</span>`;}};}
 
-function field({ id, label, type = "text", placeholder = "", autocomplete = "off", min = "" }) {
-  return `<label class="field" for="${id}"><span>${label}</span>
-    <input id="${id}" name="${id}" type="${type}" placeholder="${placeholder}" autocomplete="${autocomplete}" ${min ? `min="${min}"` : ""} required />
-  </label>`;
-}
+function selected(){return state.institutes.find(i=>i.id===state.selectedId);}
+function renderManage(){const i=selected();if(!i){state.screen="dashboard";return render();}const s=effectiveStatus(i);app.innerHTML=dashboardShell(`<button id="back-dashboard" class="back">← Dashboard</button><div class="manage-head"><div class="avatar large">${esc((i.instituteName||"H")[0])}</div><div><span class="step">Institute management</span><h2>${esc(i.instituteName)}</h2><p>${esc(i.instituteCode)} · ${esc(i.instituteId)}</p></div><span class="pill ${s}-pill">${s}</span></div><div class="detail-grid"><article><span>Owner</span><strong>${esc(i.ownerName||"—")}</strong><small>${esc(i.ownerPhone||"")} ${i.ownerEmail?`· ${esc(i.ownerEmail)}`:""}</small></article><article><span>Location</span><strong>${esc(i.city||"—")}</strong><small>${esc(i.address||"No address")}</small></article><article><span>Student Capacity</span><strong>${Number(i.currentStudents||0)} / ${Number(i.studentLimit||0)}</strong><small>Current / Limit</small></article><article><span>Subscription End</span><strong>${formatDate(i.subscriptionEnd)}</strong><small>${isExpired(i)?"Expired":"Active plan"}</small></article></div><div class="action-grid"><button id="edit" class="action-button">✏️ Edit Details</button><button id="toggle" class="action-button">${i.status==="active"?"⏸ Deactivate":"▶ Activate"}</button><button id="reset" class="action-button">🔐 Reset Password</button><button id="renew" class="action-button">🔄 Renew 1 Year</button><button id="share" class="action-button">💬 Share Login</button><button id="archive" class="action-button danger-action">${i.isArchived?"↩ Restore":"🗄 Archive"}</button></div><p id="manage-msg" class="form-message"></p>`);bindCommon();document.querySelector("#back-dashboard").onclick=()=>{state.screen="dashboard";render();};document.querySelector("#edit").onclick=()=>{state.screen="edit";render();};document.querySelector("#toggle").onclick=async()=>{await setInstituteStatus(i.id,i.status==="active"?"inactive":"active",state.authUser.uid);i.status=i.status==="active"?"inactive":"active";writeCache(state.institutes);notify(`Institute ${i.status}.`);state.screen="dashboard";render();};document.querySelector("#reset").onclick=async()=>{const p=generateTemporaryPassword();const ok=confirm(`Reset institute password to ${p}?`);if(!ok)return;await resetInstitutePassword(i.id,p,state.authUser.uid);state.lastCredentials={instituteId:i.instituteId,instituteCode:i.instituteCode,instituteName:i.instituteName,temporaryPassword:p,subscriptionEnd:formatDate(i.subscriptionEnd)};notify("Temporary password reset successfully.");state.screen="dashboard";render();};document.querySelector("#renew").onclick=async()=>{if(!confirm("Extend subscription by 1 year?"))return;const end=await renewSubscription(i.id,12,state.authUser.uid);i.subscriptionEnd=end;i.status="active";i.subscriptionStatus="active";writeCache(state.institutes);notify(`Subscription renewed until ${end.toLocaleDateString("en-IN")}.`);state.screen="dashboard";render();};document.querySelector("#share").onclick=()=>window.open(`https://wa.me/?text=${encodeURIComponent(`HMOS Institute Login\nInstitute: ${i.instituteName}\nCode: ${i.instituteCode}\nContact HMOS Super Admin for current password.`)}`,"_blank","noopener");document.querySelector("#archive").onclick=async()=>{if(!confirm(i.isArchived?"Restore this institute?":"Archive this institute and block login?"))return;if(i.isArchived){await restoreInstitute(i.id,state.authUser.uid);i.isArchived=false;i.status="active";}else{await archiveInstitute(i.id,state.authUser.uid);i.isArchived=true;i.status="inactive";}writeCache(state.institutes);notify(i.isArchived?"Institute archived.":"Institute restored.");state.screen="dashboard";render();};}
+function renderEdit(){const i=selected();if(!i){state.screen="dashboard";return render();}app.innerHTML=dashboardShell(`<button id="back-manage" class="back">← Manage Institute</button><div class="card-heading"><span class="step">Edit institute</span><h2>${esc(i.instituteName)}</h2><p>Update owner, location and capacity details.</p></div>${instituteForm(i)}`);bindCommon();document.querySelector("#back-manage").onclick=()=>{state.screen="manage";render();};bindInstituteForm(i);}
 
-function renderInstituteLogin(message = "") {
-  app.innerHTML = shell(`
-    <section class="card login-card">
-      <div class="card-heading"><span class="step">Institute access</span><h2>Institute Login</h2>
-        <p>Enter the institute credentials issued by HMOS.</p></div>
-      <form id="institute-form" novalidate>
-        ${field({ id: "institute-id", label: "Institute Name / ID", placeholder: "Enter institute name or ID" })}
-        ${field({ id: "institute-password", label: "Institute Password", type: "password", placeholder: "Enter institute password", autocomplete: "current-password" })}
-        <label class="check"><input type="checkbox" id="remember-institute" /><span>Remember this institute</span></label>
-        <p id="form-message" class="form-message ${message ? "show info" : ""}">${escapeHtml(message)}</p>
-        <button class="primary" type="submit">Continue <span>→</span></button>
-      </form>
-      <button id="super-admin-link" class="text-link" type="button">Super Admin Login</button>
-    </section>`);
+function render(){if(state.screen==="super-admin")return renderSuperAdmin();if(state.screen==="dashboard")return renderAdminDashboard();if(state.screen==="create")return renderCreate();if(state.screen==="manage")return renderManage();if(state.screen==="edit")return renderEdit();if(state.screen==="institute-portal")return renderInstitutePortal();return renderInstituteLogin();}
 
-  document.querySelector("#institute-form").addEventListener("submit", async event => {
-    event.preventDefault();
-    const messageEl = document.querySelector("#form-message");
-    const button = event.currentTarget.querySelector("button[type='submit']");
-    const instituteCode = document.querySelector("#institute-id").value.trim();
-    const password = document.querySelector("#institute-password").value;
-    if (!instituteCode || !password) {
-      messageEl.textContent = "Enter the institute code and password.";
-      messageEl.className = "form-message show error";
-      return;
-    }
-    button.disabled = true;
-    button.textContent = "Checking…";
-    try {
-      state.instituteSession = await loginInstitute(instituteCode, password);
-      renderInstitutePortal();
-    } catch (error) {
-      const messages = {
-        "invalid-institute-credential": "Incorrect institute code or password.",
-        "institute-inactive": "This institute account is inactive.",
-        "subscription-expired": "The institute subscription has expired.",
-        "permission-denied": "Publish the included Firestore rules before using institute login."
-      };
-      messageEl.textContent = messages[error?.code] || "Institute login failed.";
-      messageEl.className = "form-message show error";
-      button.disabled = false;
-      button.innerHTML = "Continue <span>→</span>";
-    }
-  });
-  document.querySelector("#super-admin-link").addEventListener("click", () => {
-    state.screen = "super-admin";
-    render();
-  });
-}
-
-function renderSuperAdmin(message = "", status = "") {
-  app.innerHTML = shell(`
-    <section class="card login-card">
-      <button id="back-button" class="back" type="button">← Institute Login</button>
-      <div class="card-heading"><span class="step">Restricted access</span><h2>Super Admin Login</h2>
-        <p>Only an authorized HMOS platform administrator can continue.</p></div>
-      <form id="admin-form" novalidate>
-        ${field({ id: "admin-email", label: "Email Address", type: "email", placeholder: "Enter registered email", autocomplete: "username" })}
-        ${field({ id: "admin-password", label: "Password", type: "password", placeholder: "Enter password", autocomplete: "current-password" })}
-        <p id="form-message" class="form-message ${message ? `show ${status}` : ""}">${escapeHtml(message)}</p>
-        <button id="admin-submit" class="primary" type="submit">Secure Login <span>→</span></button>
-      </form>
-    </section>`, true);
-
-  document.querySelector("#back-button").addEventListener("click", () => {
-    state.screen = "institute";
-    render();
-  });
-  document.querySelector("#admin-form").addEventListener("submit", async event => {
-    event.preventDefault();
-    const button = document.querySelector("#admin-submit");
-    const messageEl = document.querySelector("#form-message");
-    const email = document.querySelector("#admin-email").value.trim();
-    const password = document.querySelector("#admin-password").value;
-    if (!email || !password) {
-      messageEl.textContent = "Enter the registered email and password.";
-      messageEl.className = "form-message show error";
-      return;
-    }
-    button.disabled = true;
-    button.textContent = "Signing in…";
-    try {
-      await loginSuperAdmin(email, password);
-    } catch (error) {
-      console.error("HMOS Firebase login error:", error);
-      const messages = {
-        "auth/invalid-credential": "Incorrect email or password.",
-        "auth/invalid-login-credentials": "Incorrect email or password.",
-        "auth/user-not-found": "No Firebase Authentication user exists for this email.",
-        "auth/wrong-password": "The password is incorrect.",
-        "auth/user-disabled": "This account has been disabled in Firebase Authentication.",
-        "auth/too-many-requests": "Too many attempts. Wait a few minutes and try again.",
-        "auth/network-request-failed": "Network error. Check your internet connection.",
-        "auth/unauthorized-domain": "This website domain is not authorized in Firebase Authentication.",
-        "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication.",
-        "auth/invalid-api-key": "The Firebase API key in firebase-config.js is invalid.",
-        "auth/app-deleted": "Firebase was not initialized correctly."
-      };
-      const code = error?.code || "unknown-error";
-      messageEl.textContent = `${messages[code] || "Login failed."} Error: ${code}`;
-      messageEl.className = "form-message show error";
-      button.disabled = false;
-      button.innerHTML = "Secure Login <span>→</span>";
-    }
-  });
-}
-
-function renderInstitutePortal() {
-  const institute = state.instituteSession;
-  app.innerHTML = shell(`
-    <section class="card login-card">
-      <span class="step success-step">Institute access verified</span>
-      <h2>${escapeHtml(institute?.instituteName || "Institute Portal")}</h2>
-      <p class="blocked-copy">Code: <strong>${escapeHtml(institute?.instituteCode || "")}</strong></p>
-      <div class="notice"><strong>Institute portal is ready.</strong><p>Students, rooms, fees and admissions modules will be connected in Phase 2.</p></div>
-      <button id="institute-logout" class="primary" type="button">Return to Login</button>
-    </section>`, true);
-  document.querySelector("#institute-logout").addEventListener("click", () => {
-    state.instituteSession = null;
-    state.screen = "institute";
-    render();
-  });
-}
-
-function dashboardShell(content) {
-  const email = state.authUser?.email || "Authorized administrator";
-  return shell(`
-    <section class="card dashboard-card wide-card">
-      <div class="dashboard-head">
-        <div><span class="step success-step">Authorized platform access</span><h2>Super Admin Dashboard</h2><p>${escapeHtml(email)}</p></div>
-        <button id="logout" class="secondary" type="button">Logout</button>
-      </div>
-      ${content}
-    </section>`, true);
-}
-
-function instituteRows() {
-  if (!state.institutes.length) {
-    return `<div class="empty-state"><strong>No institutes created yet.</strong><p>Create the first hostel institute using the button above.</p></div>`;
-  }
-  return `<div class="institute-list">${state.institutes.map(item => `
-    <article class="institute-row">
-      <div class="avatar">${escapeHtml((item.instituteName || "H").slice(0,1).toUpperCase())}</div>
-      <div class="institute-main"><strong>${escapeHtml(item.instituteName)}</strong><span>${escapeHtml(item.instituteCode)} · ${escapeHtml(item.hostelType || "hostel")}</span></div>
-      <div><span class="pill active-pill">${escapeHtml(item.status || "active")}</span></div>
-      <div class="limit-text">${Number(item.studentLimit || 0)} students</div>
-    </article>`).join("")}</div>`;
-}
-
-function renderAdminDashboard(message = "", status = "") {
-  app.innerHTML = dashboardShell(`
-    <div class="metric-grid">
-      <article><span>Total Institutes</span><strong>${state.institutes.length}</strong><small>Registered on HMOS</small></article>
-      <article><span>Active Plans</span><strong>${state.institutes.filter(x => x.subscriptionStatus === "active").length}</strong><small>Yearly subscriptions</small></article>
-      <article><span>System Status</span><strong class="health-text">Healthy</strong><small>Firebase connected</small></article>
-    </div>
-    <div class="section-title"><div><h3>Institute Management</h3><p>Create and review institutes registered on the platform.</p></div><button id="open-create" class="primary compact-primary" type="button">+ Create Institute</button></div>
-    <p id="dashboard-message" class="form-message ${message ? `show ${status}` : ""}">${escapeHtml(message)}</p>
-    ${state.lastCredentials ? `<div class="credentials-card"><div><span class="step success-step">Generated institute login</span><strong>${escapeHtml(state.lastCredentials.instituteCode)}</strong><small>ID: ${escapeHtml(state.lastCredentials.instituteId)}</small></div><div class="credential-value"><span>Temporary Password</span><code>${escapeHtml(state.lastCredentials.temporaryPassword)}</code><small>Plan valid until ${escapeHtml(state.lastCredentials.subscriptionEnd)}</small></div><button id="copy-credentials" class="secondary" type="button">Copy Login</button></div>` : ""}
-    ${instituteRows()}
-    <div class="setup-note"><strong>Security checkpoint</strong><p>Institute portal passwords are intentionally not stored in the browser. Secure password creation will be added through a server function in the next build.</p></div>
-  `);
-  bindDashboardEvents();
-}
-
-function renderCreateInstitute(message = "", status = "") {
-  app.innerHTML = dashboardShell(`
-    <button id="back-dashboard" class="back" type="button">← Dashboard</button>
-    <div class="card-heading"><span class="step">Institute onboarding</span><h2>Create Institute</h2><p>Add the hostel identity and yearly plan limits.</p></div>
-    <form id="create-institute-form" class="form-grid" novalidate>
-      <label class="field" for="new-code"><span>Institute Code</span><div class="input-action"><input id="new-code" name="new-code" type="text" placeholder="Auto-generated or enter code" autocomplete="off" required /><button id="generate-code" class="mini-button" type="button">Generate</button></div></label>
-      ${field({ id: "new-name", label: "Institute Name", placeholder: "Enter hostel name" })}
-      <label class="field" for="new-type"><span>Hostel Type</span><select id="new-type" required><option value="boys">Boys Hostel</option><option value="girls">Girls Hostel</option><option value="mixed">Mixed Hostel</option></select></label>
-      ${field({ id: "new-owner", label: "Owner Name", placeholder: "Enter owner name" })}
-      ${field({ id: "new-phone", label: "Owner Phone", type: "tel", placeholder: "10-digit mobile number" })}
-      ${field({ id: "new-limit", label: "Student Limit", type: "number", placeholder: "100", min: "1" })}
-      <label class="field form-wide" for="new-password"><span>Temporary Institute Password</span><div class="input-action"><input id="new-password" name="new-password" type="text" placeholder="Generate secure password" autocomplete="off" required /><button id="generate-password" class="mini-button" type="button">Generate</button></div></label>
-      <p id="create-message" class="form-message ${message ? `show ${status}` : ""}">${escapeHtml(message)}</p>
-      <button id="create-submit" class="primary form-wide" type="submit">Save Institute <span>→</span></button>
-    </form>
-  `);
-  document.querySelector("#back-dashboard").addEventListener("click", () => { state.screen = "admin-dashboard"; render(); });
-  document.querySelector("#logout").addEventListener("click", logoutHandler);
-  const nameInput = document.querySelector("#new-name");
-  document.querySelector("#generate-code").addEventListener("click", () => {
-    document.querySelector("#new-code").value = generateInstituteCode(nameInput.value || "HMOS");
-  });
-  document.querySelector("#generate-password").addEventListener("click", () => {
-    document.querySelector("#new-password").value = generateTemporaryPassword();
-  });
-  document.querySelector("#new-password").value = generateTemporaryPassword();
-  document.querySelector("#create-institute-form").addEventListener("submit", submitInstitute);
-}
-
-async function submitInstitute(event) {
-  event.preventDefault();
-  const messageEl = document.querySelector("#create-message");
-  const button = document.querySelector("#create-submit");
-  const input = {
-    instituteCode: document.querySelector("#new-code").value.trim(),
-    instituteName: document.querySelector("#new-name").value.trim(),
-    hostelType: document.querySelector("#new-type").value,
-    ownerName: document.querySelector("#new-owner").value.trim(),
-    ownerPhone: document.querySelector("#new-phone").value.trim(),
-    studentLimit: document.querySelector("#new-limit").value,
-    temporaryPassword: document.querySelector("#new-password").value.trim()
-  };
-  if (!input.instituteCode || !input.instituteName || !input.ownerName || !input.temporaryPassword || !/^\d{10}$/.test(input.ownerPhone) || Number(input.studentLimit) < 1) {
-    messageEl.textContent = "Complete all fields and enter a valid 10-digit phone number.";
-    messageEl.className = "form-message show error form-wide";
-    return;
-  }
-  button.disabled = true;
-  button.textContent = "Saving…";
-  try {
-    const created = await createInstitute(input, state.authUser.uid);
-    state.institutes = [created, ...state.institutes];
-    writeInstitutesCache(state.institutes);
-    state.lastCredentials = {
-      instituteId: created.instituteId,
-      instituteCode: created.instituteCode,
-      temporaryPassword: created.temporaryPassword,
-      subscriptionEnd: created.subscriptionEnd?.toDate ? created.subscriptionEnd.toDate().toLocaleDateString("en-IN") : "1 year"
-    };
-    state.screen = "admin-dashboard";
-    renderAdminDashboard("Institute created successfully.", "success-message");
-  } catch (error) {
-    messageEl.textContent = error.code === "permission-denied"
-      ? "Firestore permission denied. Publish the included v2.3 rules."
-      : error.code === "institute-code-exists"
-        ? "This institute code already exists. Generate a new code."
-        : "Could not create the institute. Please try again.";
-    messageEl.className = "form-message show error form-wide";
-    button.disabled = false;
-    button.innerHTML = "Save Institute <span>→</span>";
-  }
-}
-
-async function logoutHandler() {
-  await logoutCurrentUser();
-  state.profile = null;
-  state.institutes = [];
-  state.screen = "super-admin";
-  render();
-}
-
-function bindDashboardEvents() {
-  document.querySelector("#logout").addEventListener("click", logoutHandler);
-  document.querySelector("#open-create").addEventListener("click", () => { state.screen = "create-institute"; render(); });
-  const copyButton = document.querySelector("#copy-credentials");
-  if (copyButton && state.lastCredentials) {
-    copyButton.addEventListener("click", async () => {
-      const text = `HMOS Institute Login\nCode: ${state.lastCredentials.instituteCode}\nPassword: ${state.lastCredentials.temporaryPassword}`;
-      try { await navigator.clipboard.writeText(text); copyButton.textContent = "Copied"; }
-      catch { copyButton.textContent = "Copy failed"; }
-    });
-  }
-}
-
-function renderUnauthorized(reason = "This account is not authorized as the HMOS Super Admin.") {
-  app.innerHTML = shell(`
-    <section class="card login-card"><span class="step danger-step">Access blocked</span><h2>Authorization Required</h2><p class="blocked-copy">${escapeHtml(reason)}</p><button id="blocked-logout" class="primary" type="button">Return to Login</button></section>`, true);
-  document.querySelector("#blocked-logout").addEventListener("click", logoutHandler);
-}
-
-function renderLoading() {
-  app.innerHTML = shell(`<section class="card login-card loading-card"><div class="loader"></div><h2>Checking authorization…</h2><p>Please wait while HMOS verifies this account.</p></section>`, true);
-}
-
-function render() {
-  if (state.screen === "super-admin") return renderSuperAdmin();
-  if (state.screen === "admin-dashboard") return renderAdminDashboard();
-  if (state.screen === "create-institute") return renderCreateInstitute();
-  if (state.screen === "unauthorized") return renderUnauthorized();
-  if (state.screen === "loading") return renderLoading();
-  if (state.screen === "institute-portal") return renderInstitutePortal();
-  return renderInstituteLogin();
-}
-
-watchAuth(async user => {
-  state.authUser = user;
-  if (!user) {
-    if (["admin-dashboard", "create-institute", "loading", "unauthorized"].includes(state.screen)) state.screen = "super-admin";
-    render();
-    return;
-  }
-
-  const cached = readInstitutesCache();
-  if (cached.length) {
-    state.institutes = cached;
-    state.screen = "admin-dashboard";
-    render();
-  } else {
-    state.screen = "loading";
-    render();
-  }
-
-  try {
-    const [profile, institutes] = await Promise.all([
-      getCurrentUserProfile(user.uid).catch(() => null),
-      listInstitutes()
-    ]);
-    state.profile = profile;
-    const emailAllowed = String(user.email || "").toLowerCase() === SUPER_ADMIN_EMAIL;
-    const profileAllowed = profile && profile.userType === "superAdmin" && profile.accountStatus === "active";
-    if (!emailAllowed && !profileAllowed) {
-      state.screen = "unauthorized";
-      render();
-      return;
-    }
-    state.institutes = institutes;
-    writeInstitutesCache(institutes);
-    state.screen = "admin-dashboard";
-    render();
-  } catch (error) {
-    if (String(user.email || "").toLowerCase() === SUPER_ADMIN_EMAIL && state.institutes.length) return;
-    state.screen = "unauthorized";
-    renderUnauthorized(error.code === "permission-denied" ? "Publish the included v2.3 Firestore rules before using the dashboard." : undefined);
-  }
-});
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js").catch(() => {}));
-}
+watchAuth(async user=>{state.authUser=user;if(!user){if(["dashboard","create","manage","edit"].includes(state.screen))state.screen="super-admin";render();return;}if(user.email?.toLowerCase()!==SUPER_ADMIN_EMAIL){await logoutCurrentUser();return renderSuperAdmin("This email is not authorized as HMOS Super Admin.");}state.institutes=readCache();state.screen="dashboard";render();try{state.institutes=await listInstitutes();writeCache(state.institutes);if(state.screen==="dashboard")renderAdminDashboard();}catch(err){console.error(err);}});
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));

@@ -1,34 +1,11 @@
-const CACHE = "hmos-v2-3-2-stable-fast";
+const CACHE = "hmos-v2-4-institute-pro";
 const STATIC_ASSETS = ["./", "index.html", "styles.css", "manifest.json"];
-
-self.addEventListener("install", event => {
-  self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS)));
-});
-
-self.addEventListener("activate", event => {
-  event.waitUntil(Promise.all([
-    self.clients.claim(),
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
-  ]));
-});
-
-self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-
-  const isCode = /\.(?:js|html)$/.test(url.pathname) || event.request.mode === "navigate";
-  if (isCode) {
-    event.respondWith(fetch(event.request, { cache: "no-store" }).then(response => {
-      if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
-      return response;
-    }).catch(() => caches.match(event.request).then(hit => hit || caches.match("index.html"))));
-    return;
-  }
-
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-    if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
-    return response;
-  })));
+self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC_ASSETS))); });
+self.addEventListener("activate", e => e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
+self.addEventListener("fetch", e => {
+  if(e.request.method!=="GET") return;
+  const u=new URL(e.request.url); if(u.origin!==self.location.origin) return;
+  const code=/\.(?:js|html)$/.test(u.pathname)||e.request.mode==="navigate";
+  if(code){e.respondWith(fetch(e.request,{cache:"no-store"}).then(r=>{if(r.ok)caches.open(CACHE).then(c=>c.put(e.request,r.clone()));return r;}).catch(()=>caches.match(e.request).then(x=>x||caches.match("index.html"))));return;}
+  e.respondWith(caches.match(e.request).then(x=>x||fetch(e.request).then(r=>{if(r.ok)caches.open(CACHE).then(c=>c.put(e.request,r.clone()));return r;})));
 });

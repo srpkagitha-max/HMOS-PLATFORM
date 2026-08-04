@@ -1,7 +1,13 @@
-# Changelog
+# HMOS Changelog
 
-## v2.3.2 — Stable Fast Open
-- Fixed the permanent HMOS loading-screen issue introduced by the instant-open experiment.
-- Restored the last known working application startup flow.
-- Added an immediate branded startup screen with a reload fallback after 12 seconds.
-- JavaScript and HTML now use network-first loading to prevent stale broken code.
+## v2.4.0 — Institute Management Pro
+- Search and status filters for institute list.
+- Edit institute owner, location, hostel type and student capacity.
+- Activate/deactivate institute portal access.
+- Soft archive and restore institutes.
+- Reset temporary institute passwords.
+- Renew subscriptions by one year.
+- Copy and WhatsApp login credentials.
+- Live active, expired and archived dashboard counters.
+- Cached dashboard first paint with background Firestore refresh.
+- Mobile management UI improvements.

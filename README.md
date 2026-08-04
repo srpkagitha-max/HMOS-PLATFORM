@@ -1,22 +1,17 @@
-# HMOS Platform — V2.1 Super Admin Foundation
+# HMOS Platform — v2.4 Institute Management Pro
+
+Static Firebase-powered multi-institute hostel management platform.
+
+## Deploy
+Upload all files to the repository root. GitHub Pages: main branch, root folder.
+Publish `firestore.rules` in Firebase Firestore Rules.
 
 ## Included
-- Premium institute landing page
-- Firebase Email/Password Super Admin login
-- Firestore-backed authorization using `users/{uid}`
-- Super Admin dashboard
-- Institute list and create-institute workflow
-- Multi-institute starter security rules
-- PWA shell and GitHub Pages root deployment
-
-## Required one-time setup
-1. Create the Super Admin account in Firebase Authentication.
-2. Copy that user's UID.
-3. In Firestore, create document `users/{UID}` with:
-   - `userType`: `superAdmin`
-   - `accountStatus`: `active`
-   - `displayName`: your preferred administrator name
-4. Publish the included `firestore.rules` in Firestore → Rules.
+- Super Admin authentication
+- Institute creation and portal login
+- Search, edit, activate/deactivate, archive/restore
+- Password reset and subscription renewal
+- Mobile-first dashboard with cached first paint
 
 ## Security note
-Institute portal passwords are not stored in client-side code. Secure password generation and verification will be added through a server function in the next build.
+Institute password verification is client-side for development. Before commercial production, migrate institute authentication and password management to Firebase Authentication or a trusted server/Cloud Function.
