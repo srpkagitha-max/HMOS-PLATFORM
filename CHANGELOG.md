@@ -1,4 +1,12 @@
-## v2.6.3 — Save Timeout Hotfix
+# HMOS Changelog
+
+## v2.6.4 — Direct Save Fix
+- Institute edit now uses one direct Firestore merge write.
+- Removed the blocking read-before-write step.
+- instituteAccess mirror sync runs in the background and never blocks the screen.
+- Added a hard UI timeout so the Save button always recovers.
+
+## v2.6.4 — Save Timeout Hotfix
 - Prevents Edit Institute from remaining on “Saving…” indefinitely.
 - Saves the main institute record first.
 - Syncs instituteAccess as a secondary, time-limited operation.

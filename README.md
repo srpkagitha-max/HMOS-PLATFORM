@@ -1,4 +1,4 @@
-# HMOS v2.6.3
+# HMOS v2.6.4
 This hotfix prevents institute edits from hanging indefinitely and adds Firebase request timeouts.
 
 ## V2.6.1 — Institute Update + PWA Install Hotfix

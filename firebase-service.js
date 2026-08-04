@@ -145,11 +145,9 @@ const withTimeout = (promise, milliseconds = 12000, code = "request-timeout") =>
     new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error("Firebase request timed out"), { code })), milliseconds))
   ]);
 
-export async function updateInstitute(instituteId, input, actorUid) {
+export async function updateInstitute(instituteId, input, actorUid, existingRecord = null) {
   const ref = doc(db, "institutes", instituteId);
-  const snap = await withTimeout(getDoc(ref), 10000, "read-timeout");
-  if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
-  const current = snap.data();
+  const current = existingRecord || {};
   const updates = {
     instituteName: cleanText(input.instituteName),
     hostelType: input.hostelType,
@@ -163,16 +161,18 @@ export async function updateInstitute(instituteId, input, actorUid) {
     updatedBy: actorUid
   };
 
-  // Save the main institute first so the Edit screen never stays stuck forever.
-  await withTimeout(updateDoc(ref, updates), 12000, "save-timeout");
+  // Direct merge write: no preliminary read and no dependency on the
+  // instituteAccess mirror. This prevents the Save button hanging on slow
+  // mobile networks or a missing access record.
+  await withTimeout(setDoc(ref, updates, { merge: true }), 7000, "save-timeout");
 
-  // Keep the login-access mirror in sync, but do not roll back a successful
-  // institute edit if the secondary access record is unavailable.
-  let accessSyncWarning = false;
-  try {
-    await withTimeout(setDoc(doc(db, "instituteAccess", current.instituteCode), {
+  // Mirror login details in the background. The edit is already successful,
+  // so this secondary sync must never block or delay the UI.
+  const instituteCode = current.instituteCode || normalizeCode(input.instituteCode);
+  if (instituteCode) {
+    setDoc(doc(db, "instituteAccess", instituteCode), {
       instituteId,
-      instituteCode: current.instituteCode,
+      instituteCode,
       instituteName: updates.instituteName,
       hostelType: updates.hostelType,
       ownerPhone: updates.ownerPhone,
@@ -184,13 +184,10 @@ export async function updateInstitute(instituteId, input, actorUid) {
       subscriptionEnd: current.subscriptionEnd || null,
       mustChangePassword: current.mustChangePassword !== false,
       updatedAt: serverTimestamp()
-    }, { merge: true }), 8000, "access-sync-timeout");
-  } catch (error) {
-    console.warn("HMOS access mirror sync warning:", error);
-    accessSyncWarning = true;
+    }, { merge: true }).catch(error => console.warn("HMOS access mirror sync warning:", error));
   }
 
-  return { id: instituteId, ...current, ...updates, accessSyncWarning };
+  return { id: instituteId, ...current, ...updates };
 }
 
 export async function setInstituteStatus(instituteId, status, actorUid) {
