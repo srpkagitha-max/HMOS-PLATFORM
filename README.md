@@ -15,3 +15,7 @@ Publish `firestore.rules` in Firebase Firestore Rules.
 
 ## Security note
 Institute password verification is client-side for development. Before commercial production, migrate institute authentication and password management to Firebase Authentication or a trusted server/Cloud Function.
+
+
+## Current build
+V2.4.1 Mobile UI Fix

@@ -12,3 +12,45 @@
 .action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.action-button{min-height:50px;border:1px solid var(--line);background:#f5f9fd;color:var(--navy);border-radius:14px;font-weight:800;cursor:pointer}.danger-action{color:#9e2f25;background:#fff3f1;border-color:#f3cbc6}
 @media(max-width:850px){.metric-grid.four{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr}.pro-row{grid-template-columns:40px minmax(0,1fr) auto}.pro-row .row-meta{grid-column:2}.pro-row .row-menu{grid-column:3;grid-row:2}.detail-grid{grid-template-columns:1fr}.action-grid{grid-template-columns:1fr 1fr}.manage-head{grid-template-columns:auto 1fr}.manage-head>.pill{grid-column:1/-1;width:max-content}.credential-actions{width:100%}.credential-actions .secondary{flex:1}}
 @media(max-width:430px){.action-grid{grid-template-columns:1fr}.metric-grid.four{grid-template-columns:1fr 1fr}.pro-row{padding:12px 10px;gap:9px}.row-menu{padding:8px 10px}.dashboard-head{gap:8px}.dashboard-head .secondary{padding:0 12px}}
+
+
+/* HMOS v2.4.1 — premium mobile institute management */
+.manage-head,
+.detail-grid,
+.action-grid { width:100%; }
+.manage-head { border:1px solid var(--line); background:linear-gradient(145deg,#f8fbff,#eef6fd); border-radius:20px; padding:17px; }
+.manage-head > div:nth-child(2){min-width:0}
+.manage-head h2{font-size:clamp(25px,6vw,34px);line-height:1.05;overflow-wrap:anywhere}
+.manage-head p{white-space:normal;overflow-wrap:anywhere}
+.detail-grid article{min-width:0;overflow:hidden;box-shadow:0 7px 18px rgba(10,55,107,.045)}
+.detail-grid article span{font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.detail-grid article strong{font-size:18px;line-height:1.25;overflow-wrap:anywhere}
+.detail-grid article small{overflow-wrap:anywhere;word-break:break-word}
+.action-grid button{appearance:none;-webkit-appearance:none;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;font-size:14px;line-height:1.2;box-shadow:none}
+.action-button:hover{background:#eaf3fb;border-color:#bfd6ea}
+.action-button:active{transform:scale(.985)}
+.danger-action:hover{background:#ffe9e5;border-color:#edaaa2}
+.dashboard-head .secondary{flex:none}
+
+@media(max-width:850px){
+  .dashboard-card{overflow:hidden}
+  .dashboard-head{position:relative;padding-right:84px;min-height:58px}
+  .dashboard-head .secondary{position:absolute;right:0;top:0;min-height:46px;padding:0 15px;border-radius:14px}
+  .manage-head{grid-template-columns:52px minmax(0,1fr);gap:12px;margin:18px 0 16px;padding:14px}
+  .avatar.large{width:52px;height:52px;font-size:20px}
+  .manage-head>.pill{grid-column:2;width:max-content;margin-top:2px}
+  .detail-grid{gap:10px}
+  .detail-grid article{padding:14px;border-radius:15px}
+  .action-grid{grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+  .action-grid button{min-height:48px;border-radius:13px;font-size:13px}
+}
+@media(max-width:430px){
+  .card.dashboard-card{padding-left:18px;padding-right:18px}
+  .dashboard-head{padding-right:76px}
+  .dashboard-head .secondary{min-height:43px;padding:0 12px;font-size:13px}
+  .manage-head h2{font-size:26px}
+  .detail-grid article strong{font-size:16px}
+  .action-grid{grid-template-columns:1fr 1fr}
+  .action-grid button{padding:0 8px;font-size:12.5px}
+}
+@media(max-width:350px){.action-grid{grid-template-columns:1fr}}
