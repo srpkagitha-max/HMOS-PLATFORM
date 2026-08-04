@@ -8,13 +8,15 @@
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="//www.gstatic.com" />
   <link rel="modulepreload" href="app.js" />
-  <link rel="modulepreload" href="firebase-service.js" />
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
   <title>Hostel Management Operating System</title>
+  <style>
+    .boot-placeholder{min-height:100vh;background:#0b447d;padding:18vh 8vw;color:#fff;font-family:system-ui,sans-serif}.boot-logo{font-size:2rem;font-weight:800;letter-spacing:.28em}.boot-line{height:18px;max-width:430px;margin-top:28px;border-radius:10px;background:rgba(255,255,255,.22)}.boot-line.short{max-width:280px;margin-top:14px}
+  </style>
 </head>
 <body>
-  <div id="app" aria-live="polite"></div>
+  <div id="app" aria-live="polite"><div class="boot-placeholder" role="status" aria-label="Loading HMOS"><div class="boot-logo">HMOS</div><div class="boot-line"></div><div class="boot-line short"></div></div></div>
   <noscript>JavaScript is required to use HMOS.</noscript>
   <script type="module" src="app.js"></script>
 </body>

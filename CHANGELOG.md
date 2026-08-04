@@ -1,3 +1,12 @@
+# HMOS v2.3.1 — Instant Open
+
+- Removed Firebase CDN modules from the critical first-render path.
+- Login screen now renders before Firebase downloads.
+- Firebase authentication restores in the background after first paint.
+- Added a tiny inline boot placeholder to avoid a blank white screen.
+- Updated service worker to fetch fresh JavaScript and HTML while caching static assets.
+- Preserved Phase 1 institute creation and fast cached dashboard.
+
 # HMOS Changelog
 
 ## v2.3.0 — Phase 1 + Fast Access

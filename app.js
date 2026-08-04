@@ -1,14 +1,42 @@
-import {
-  loginSuperAdmin,
-  logoutCurrentUser,
-  watchAuth,
-  getCurrentUserProfile,
-  listInstitutes,
-  createInstitute,
-  loginInstitute,
-  generateInstituteCode,
-  generateTemporaryPassword
-} from "./firebase-service.js";
+let firebaseModulePromise = null;
+let authWatcherStarted = false;
+
+function getFirebaseModule() {
+  if (!firebaseModulePromise) firebaseModulePromise = import("./firebase-service.js");
+  return firebaseModulePromise;
+}
+
+async function ensureAuthWatcher() {
+  if (authWatcherStarted) return;
+  const firebase = await getFirebaseModule();
+  firebase.watchAuth(handleAuthState);
+  authWatcherStarted = true;
+}
+
+async function loginSuperAdmin(...args) {
+  await ensureAuthWatcher();
+  return (await getFirebaseModule()).loginSuperAdmin(...args);
+}
+async function logoutCurrentUser(...args) { return (await getFirebaseModule()).logoutCurrentUser(...args); }
+async function getCurrentUserProfile(...args) { return (await getFirebaseModule()).getCurrentUserProfile(...args); }
+async function listInstitutes(...args) { return (await getFirebaseModule()).listInstitutes(...args); }
+async function createInstitute(...args) { return (await getFirebaseModule()).createInstitute(...args); }
+async function loginInstitute(...args) { return (await getFirebaseModule()).loginInstitute(...args); }
+function generateInstituteCodeLocal(...args) {
+  return getFirebaseModule().then(module => module.generateInstituteCodeLocal(...args));
+}
+
+function generateInstituteCodeLocal(name = "HMOS") {
+  const prefix = String(name).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "HMOS";
+  return `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+function generateTemporaryPasswordLocal() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const random = new Uint32Array(8);
+  crypto.getRandomValues(random);
+  return `Hm@${[...random].map(value => alphabet[value % alphabet.length]).join("")}`;
+}
 
 const app = document.querySelector("#app");
 const state = {
@@ -255,12 +283,12 @@ function renderCreateInstitute(message = "", status = "") {
   document.querySelector("#logout").addEventListener("click", logoutHandler);
   const nameInput = document.querySelector("#new-name");
   document.querySelector("#generate-code").addEventListener("click", () => {
-    document.querySelector("#new-code").value = generateInstituteCode(nameInput.value || "HMOS");
+    document.querySelector("#new-code").value = generateInstituteCodeLocal(nameInput.value || "HMOS");
   });
   document.querySelector("#generate-password").addEventListener("click", () => {
-    document.querySelector("#new-password").value = generateTemporaryPassword();
+    document.querySelector("#new-password").value = generateTemporaryPasswordLocal();
   });
-  document.querySelector("#new-password").value = generateTemporaryPassword();
+  document.querySelector("#new-password").value = generateTemporaryPasswordLocal();
   document.querySelector("#create-institute-form").addEventListener("submit", submitInstitute);
 }
 
@@ -349,7 +377,7 @@ function render() {
   return renderInstituteLogin();
 }
 
-watchAuth(async user => {
+async function handleAuthState(user) {
   state.authUser = user;
   if (!user) {
     if (["admin-dashboard", "create-institute", "loading", "unauthorized"].includes(state.screen)) state.screen = "super-admin";
@@ -389,7 +417,13 @@ watchAuth(async user => {
     state.screen = "unauthorized";
     renderUnauthorized(error.code === "permission-denied" ? "Publish the included v2.3 Firestore rules before using the dashboard." : undefined);
   }
-});
+}
+
+// First paint is immediate. Firebase is loaded after the login UI is already visible.
+render();
+const startFirebase = () => ensureAuthWatcher().catch(error => console.error("HMOS Firebase boot error:", error));
+if ("requestIdleCallback" in window) requestIdleCallback(startFirebase, { timeout: 800 });
+else setTimeout(startFirebase, 0);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js").catch(() => {}));
