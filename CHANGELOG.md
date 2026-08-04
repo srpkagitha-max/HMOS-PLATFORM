@@ -1,3 +1,10 @@
+## V2.6.1 — Institute Update + PWA Install Hotfix
+- Atomic institute and instituteAccess updates.
+- Exact Firestore error codes in the UI.
+- Correct instituteAccess rules included.
+- Chrome-installable PWA with app icons and Install HMOS prompt.
+- Fresh cache version.
+
 # HMOS Changelog
 
 ## v2.6.0 — Institute Portal Foundation

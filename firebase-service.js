@@ -18,7 +18,8 @@ import {
   orderBy,
   getDocs,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -155,8 +156,10 @@ export async function updateInstitute(instituteId, input, actorUid) {
     updatedAt: serverTimestamp(),
     updatedBy: actorUid
   };
-  await updateDoc(ref, updates);
-  await updateDoc(doc(db, "instituteAccess", current.instituteCode), {
+  const accessRef = doc(db, "instituteAccess", current.instituteCode);
+  const batch = writeBatch(db);
+  batch.update(ref, updates);
+  batch.update(accessRef, {
     instituteName: updates.instituteName,
     hostelType: updates.hostelType,
     ownerPhone: updates.ownerPhone,
@@ -165,6 +168,7 @@ export async function updateInstitute(instituteId, input, actorUid) {
     address: updates.address,
     updatedAt: serverTimestamp()
   });
+  await batch.commit();
   return { id: instituteId, ...current, ...updates };
 }
 
