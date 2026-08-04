@@ -237,9 +237,45 @@ function render(){if(state.screen==="super-admin")return renderSuperAdmin();if(s
 
 watchAuth(async user=>{state.authUser=user;if(!user){if(["dashboard","create","manage"].includes(state.screen))state.screen="super-admin";render();return;}if(user.email?.toLowerCase()!==SUPER_ADMIN_EMAIL){await logoutCurrentUser();return renderSuperAdmin("This email is not authorized as HMOS Super Admin.");}state.institutes=readCache();state.screen="dashboard";render();try{state.institutes=await listInstitutes();writeCache(state.institutes);if(state.screen==="dashboard")renderAdminDashboard();}catch(err){console.error(err);}});
 const restoredInstitute=restoreInstituteSession();if(restoredInstitute){state.instituteSession=restoredInstitute;state.screen="institute-portal";}
-let deferredInstallPrompt=null;
-function ensureInstallButton(){let button=document.querySelector("#pwa-install-button");if(!button){button=document.createElement("button");button.id="pwa-install-button";button.className="pwa-install-button";button.type="button";button.innerHTML="⬇ Install HMOS";button.hidden=true;document.body.appendChild(button);}button.onclick=async()=>{if(!deferredInstallPrompt){alert("Chrome menu (⋮) open చేసి ‘Install app’ లేదా ‘Add to Home screen’ నొక్కండి.");return;}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice.catch(()=>null);deferredInstallPrompt=null;button.hidden=true;};return button;}
-window.addEventListener("beforeinstallprompt",event=>{event.preventDefault();deferredInstallPrompt=event;ensureInstallButton().hidden=false;});
-window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;const button=document.querySelector("#pwa-install-button");if(button)button.hidden=true;});
+let deferredInstallPrompt = null;
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+function ensureInstallButton() {
+  let button = document.querySelector("#pwa-install-button");
+  if (!button) {
+    button = document.createElement("button");
+    button.id = "pwa-install-button";
+    button.className = "pwa-install-button";
+    button.type = "button";
+    button.innerHTML = "⬇ Install HMOS";
+    document.body.appendChild(button);
+  }
+  button.hidden = isStandalone();
+  button.onclick = async () => {
+    if (isStandalone()) {
+      button.hidden = true;
+      return;
+    }
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice.catch(() => null);
+      if (choice?.outcome === "accepted") button.hidden = true;
+      deferredInstallPrompt = null;
+      return;
+    }
+    alert("Chrome menu (⋮) open చేసి ‘Install app’ నొక్కండి. ‘Create shortcut’ మాత్రమే కనిపిస్తే pageని పూర్తిగా close చేసి మళ్లీ open చేయండి; కొత్త PWA files deploy అయిన తర్వాత ‘Install app’ కనిపిస్తుంది.");
+  };
+  return button;
+}
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  ensureInstallButton().hidden = false;
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  const button = document.querySelector("#pwa-install-button");
+  if (button) button.hidden = true;
+});
+window.matchMedia("(display-mode: standalone)").addEventListener?.("change", () => ensureInstallButton());
 ensureInstallButton();
-if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js?v=2.6.2", { scope: "./" }).catch(()=>{}));

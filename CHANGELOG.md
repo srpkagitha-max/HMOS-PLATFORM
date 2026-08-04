@@ -53,3 +53,9 @@
 - Added typed ARCHIVE protection and a safe restore flow.
 - Added dedicated Share Login dialog and secure password visibility messaging.
 - Updated mobile bottom-sheet layout and cache version.
+
+## v2.6.2 — PWA Install + Access Repair
+- Fixed Chrome installability with explicit GitHub Pages scope/start URL.
+- Added root-level 192px and 512px icons so mobile GitHub uploads do not lose the icon folder.
+- Install HMOS button now remains visible until the app is installed.
+- Missing instituteAccess records are rebuilt automatically during edit, reset, status, archive, restore, and renewal actions.

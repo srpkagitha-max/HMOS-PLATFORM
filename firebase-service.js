@@ -159,15 +159,21 @@ export async function updateInstitute(instituteId, input, actorUid) {
   const accessRef = doc(db, "instituteAccess", current.instituteCode);
   const batch = writeBatch(db);
   batch.update(ref, updates);
-  batch.update(accessRef, {
+  batch.set(accessRef, {
+    instituteId,
+    instituteCode: current.instituteCode,
     instituteName: updates.instituteName,
     hostelType: updates.hostelType,
     ownerPhone: updates.ownerPhone,
     ownerEmail: updates.ownerEmail,
     city: updates.city,
     address: updates.address,
+    status: current.status || "active",
+    subscriptionStatus: current.subscriptionStatus || "active",
+    subscriptionEnd: current.subscriptionEnd || null,
+    mustChangePassword: current.mustChangePassword !== false,
     updatedAt: serverTimestamp()
-  });
+  }, { merge: true });
   await batch.commit();
   return { id: instituteId, ...current, ...updates };
 }
@@ -178,7 +184,7 @@ export async function setInstituteStatus(instituteId, status, actorUid) {
   if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
   const current = snap.data();
   await updateDoc(ref, { status, portalAccessStatus: status, updatedAt: serverTimestamp(), updatedBy: actorUid });
-  await updateDoc(doc(db, "instituteAccess", current.instituteCode), { status, updatedAt: serverTimestamp() });
+  await setDoc(doc(db, "instituteAccess", current.instituteCode), { instituteId, instituteCode: current.instituteCode, instituteName: current.instituteName, status, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function archiveInstitute(instituteId, actorUid) {
@@ -187,7 +193,7 @@ export async function archiveInstitute(instituteId, actorUid) {
   if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
   const current = snap.data();
   await updateDoc(ref, { isArchived: true, status: "inactive", portalAccessStatus: "inactive", archivedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: actorUid });
-  await updateDoc(doc(db, "instituteAccess", current.instituteCode), { status: "inactive", updatedAt: serverTimestamp() });
+  await setDoc(doc(db, "instituteAccess", current.instituteCode), { instituteId, instituteCode: current.instituteCode, instituteName: current.instituteName, status: "inactive", updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function restoreInstitute(instituteId, actorUid) {
@@ -196,7 +202,7 @@ export async function restoreInstitute(instituteId, actorUid) {
   if (!snap.exists()) throw Object.assign(new Error("Institute not found"), { code: "institute-not-found" });
   const current = snap.data();
   await updateDoc(ref, { isArchived: false, status: "active", portalAccessStatus: "active", updatedAt: serverTimestamp(), updatedBy: actorUid });
-  await updateDoc(doc(db, "instituteAccess", current.instituteCode), { status: "active", updatedAt: serverTimestamp() });
+  await setDoc(doc(db, "instituteAccess", current.instituteCode), { instituteId, instituteCode: current.instituteCode, instituteName: current.instituteName, status: "active", updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function resetInstitutePassword(instituteId, newPassword, actorUid) {
@@ -206,11 +212,22 @@ export async function resetInstitutePassword(instituteId, newPassword, actorUid)
   const current = snap.data();
   const password = newPassword || generateTemporaryPassword();
   const passwordHash = await sha256(`${current.instituteCode}:${password}`);
-  await updateDoc(doc(db, "instituteAccess", current.instituteCode), {
+  await setDoc(doc(db, "instituteAccess", current.instituteCode), {
+    instituteId,
+    instituteCode: current.instituteCode,
+    instituteName: current.instituteName,
+    hostelType: current.hostelType || "hostel",
+    ownerPhone: current.ownerPhone || "",
+    ownerEmail: current.ownerEmail || "",
+    city: current.city || "",
+    address: current.address || "",
     passwordHash,
+    status: current.status || "active",
+    subscriptionStatus: current.subscriptionStatus || "active",
+    subscriptionEnd: current.subscriptionEnd || null,
     mustChangePassword: true,
     updatedAt: serverTimestamp()
-  });
+  }, { merge: true });
   await updateDoc(ref, { mustChangePassword: true, updatedAt: serverTimestamp(), updatedBy: actorUid });
   return password;
 }
@@ -228,9 +245,15 @@ export async function renewSubscription(instituteId, months, actorUid) {
     subscriptionEnd: Timestamp.fromDate(end), subscriptionStatus: "active", status: "active", portalAccessStatus: "active",
     updatedAt: serverTimestamp(), updatedBy: actorUid
   });
-  await updateDoc(doc(db, "instituteAccess", current.instituteCode), {
-    subscriptionEnd: Timestamp.fromDate(end), status: "active", updatedAt: serverTimestamp()
-  });
+  await setDoc(doc(db, "instituteAccess", current.instituteCode), {
+    instituteId,
+    instituteCode: current.instituteCode,
+    instituteName: current.instituteName,
+    subscriptionEnd: Timestamp.fromDate(end),
+    subscriptionStatus: "active",
+    status: "active",
+    updatedAt: serverTimestamp()
+  }, { merge: true });
   return end;
 }
 
