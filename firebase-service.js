@@ -145,9 +145,10 @@ const withTimeout = (promise, milliseconds = 12000, code = "request-timeout") =>
     new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error("Firebase request timed out"), { code })), milliseconds))
   ]);
 
-export async function updateInstitute(instituteId, input, actorUid, existingRecord = null) {
+export function updateInstitute(instituteId, input, actorUid, existingRecord = null) {
   const ref = doc(db, "institutes", instituteId);
   const current = existingRecord || {};
+  const clientUpdatedAt = new Date().toISOString();
   const updates = {
     instituteName: cleanText(input.instituteName),
     hostelType: input.hostelType,
@@ -161,33 +162,42 @@ export async function updateInstitute(instituteId, input, actorUid, existingReco
     updatedBy: actorUid
   };
 
-  // Direct merge write: no preliminary read and no dependency on the
-  // instituteAccess mirror. This prevents the Save button hanging on slow
-  // mobile networks or a missing access record.
-  await withTimeout(setDoc(ref, updates, { merge: true }), 7000, "save-timeout");
-
-  // Mirror login details in the background. The edit is already successful,
-  // so this secondary sync must never block or delay the UI.
+  // IMPORTANT: Firestore write promises can remain pending for a long time on
+  // unstable mobile networks because they wait for server acknowledgement.
+  // Do not block the UI on that acknowledgement. Queue the write, return the
+  // optimistic record immediately, and report the real result asynchronously.
+  const mainWrite = setDoc(ref, updates, { merge: true });
   const instituteCode = current.instituteCode || normalizeCode(input.instituteCode);
-  if (instituteCode) {
-    setDoc(doc(db, "instituteAccess", instituteCode), {
-      instituteId,
-      instituteCode,
-      instituteName: updates.instituteName,
-      hostelType: updates.hostelType,
-      ownerPhone: updates.ownerPhone,
-      ownerEmail: updates.ownerEmail,
-      city: updates.city,
-      address: updates.address,
-      status: current.status || "active",
-      subscriptionStatus: current.subscriptionStatus || "active",
-      subscriptionEnd: current.subscriptionEnd || null,
-      mustChangePassword: current.mustChangePassword !== false,
-      updatedAt: serverTimestamp()
-    }, { merge: true }).catch(error => console.warn("HMOS access mirror sync warning:", error));
-  }
 
-  return { id: instituteId, ...current, ...updates };
+  mainWrite.then(async () => {
+    if (instituteCode) {
+      await setDoc(doc(db, "instituteAccess", instituteCode), {
+        instituteId,
+        instituteCode,
+        instituteName: updates.instituteName,
+        hostelType: updates.hostelType,
+        ownerPhone: updates.ownerPhone,
+        ownerEmail: updates.ownerEmail,
+        city: updates.city,
+        address: updates.address,
+        status: current.status || "active",
+        subscriptionStatus: current.subscriptionStatus || "active",
+        subscriptionEnd: current.subscriptionEnd || null,
+        mustChangePassword: current.mustChangePassword !== false,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+    window.dispatchEvent(new CustomEvent("hmos:institute-save-result", {
+      detail: { ok: true, instituteId }
+    }));
+  }).catch(error => {
+    console.error("HMOS background institute save failed:", error);
+    window.dispatchEvent(new CustomEvent("hmos:institute-save-result", {
+      detail: { ok: false, instituteId, code: error?.code || "unknown-error" }
+    }));
+  });
+
+  return { id: instituteId, ...current, ...updates, updatedAt: clientUpdatedAt };
 }
 
 export async function setInstituteStatus(instituteId, status, actorUid) {

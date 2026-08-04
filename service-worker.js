@@ -1,13 +1,13 @@
-const CACHE = "hmos-v2.6.4";
+const CACHE = "hmos-v2.6.5";
 const BASE = "/HMOS-PLATFORM/";
 const STATIC_ASSETS = [
   BASE,
   `${BASE}index.html`,
-  `${BASE}styles.css?v=2.6.4`,
-  `${BASE}app.js?v=2.6.4`,
+  `${BASE}styles.css?v=2.6.5`,
+  `${BASE}app.js?v=2.6.5`,
   `${BASE}firebase-config.js`,
   `${BASE}firebase-service.js`,
-  `${BASE}manifest.json?v=2.6.4`,
+  `${BASE}manifest.json?v=2.6.5`,
   `${BASE}icon-192.png`,
   `${BASE}icon-512.png`
 ];

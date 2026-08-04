@@ -1,12 +1,19 @@
+# V2.6.5 — Non-blocking Institute Save
+
+- Fixed Update Institute remaining on “Saving…” indefinitely.
+- Firestore save now runs in the background and the UI returns immediately.
+- Added asynchronous success/error reporting for the actual server write.
+- Avoided caching Firestore serverTimestamp sentinel objects in localStorage.
+
 # HMOS Changelog
 
-## v2.6.4 — Direct Save Fix
+## v2.6.5 — Direct Save Fix
 - Institute edit now uses one direct Firestore merge write.
 - Removed the blocking read-before-write step.
 - instituteAccess mirror sync runs in the background and never blocks the screen.
 - Added a hard UI timeout so the Save button always recovers.
 
-## v2.6.4 — Save Timeout Hotfix
+## v2.6.5 — Save Timeout Hotfix
 - Prevents Edit Institute from remaining on “Saving…” indefinitely.
 - Saves the main institute record first.
 - Syncs instituteAccess as a secondary, time-limited operation.
