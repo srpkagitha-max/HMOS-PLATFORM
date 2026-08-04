@@ -18,3 +18,10 @@
 - Live active, expired and archived dashboard counters.
 - Cached dashboard first paint with background Firestore refresh.
 - Mobile management UI improvements.
+
+## v2.4.2
+- Removed duplicated stylesheet payload introduced in v2.4.1.
+- Rebuilt Institute Manage screen as a single isolated render block.
+- Fixed repeated detail cards and repeated action buttons on mobile.
+- Improved compact two-column actions and safe text wrapping.
+- Updated cache version to force fresh CSS and JavaScript.
