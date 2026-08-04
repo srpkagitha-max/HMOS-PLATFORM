@@ -37,3 +37,7 @@ Institute management actions now use safe, mobile-friendly dialogs for editing, 
 
 ## V2.6 Institute Portal
 Institute login, mandatory first-login password change, remembered non-sensitive portal session, and welcome cards are enabled. The public first-login password update is a development-stage implementation; production must move password verification and changes to a Firebase Cloud Function.
+
+
+## V2.7.1 Institute Login Completion
+Institute login now remembers only the institute code, validates saved portal sessions against Firestore, handles slow networks with a timeout, and provides an access refresh control. Passwords are never stored in browser storage.

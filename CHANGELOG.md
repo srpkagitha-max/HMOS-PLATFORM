@@ -1,5 +1,15 @@
 # HMOS Changelog
 
+## V2.7.1 – Institute Login Completion
+- Remembered institute code and faster repeat login.
+- Password show/hide control.
+- Institute login timeout and clearer errors.
+- Restored sessions are validated against Firestore in the background.
+- Active, inactive and expired access is rechecked from the Institute Portal.
+- Stable V2.7.0 server-confirmed institute update flow retained.
+
+# HMOS Changelog
+
 ## V2.7.0 Stable Firestore Save
 - Replaced hanging Firestore SDK edit write with authenticated Firestore REST PATCH.
 - Added a hard 15-second abort timeout and exact HTTP/Firebase error codes.

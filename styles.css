@@ -29,3 +29,7 @@
 
 /* HMOS v2.6.1 — Chrome PWA install control */
 .pwa-install-button{position:fixed;z-index:950;right:max(14px,env(safe-area-inset-right));bottom:max(16px,calc(env(safe-area-inset-bottom) + 12px));min-height:48px;padding:0 18px;border:1px solid rgba(255,255,255,.55);border-radius:999px;background:linear-gradient(135deg,#0a376b,#0c5b9d);color:#fff;font-weight:850;box-shadow:0 14px 34px rgba(4,37,72,.28);cursor:pointer}.pwa-install-button[hidden]{display:none!important}@media(max-width:650px){.pwa-install-button{left:50%;right:auto;transform:translateX(-50%);bottom:max(14px,calc(env(safe-area-inset-bottom) + 10px));white-space:nowrap}}
+
+
+/* HMOS v2.7.1 — completed institute login UX */
+.password-input-wrap{position:relative}.password-input-wrap input{width:100%;padding-right:78px}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);min-width:56px;height:38px;border:0;border-radius:11px;background:#e7f2fb;color:#0b4e89;font-weight:850;cursor:pointer}.compact-link{margin:0;padding:0;border:0;background:transparent;font-size:12px}.portal-status .compact-link{margin-left:auto}@media(max-width:650px){.portal-status .compact-link{margin-left:0}}
