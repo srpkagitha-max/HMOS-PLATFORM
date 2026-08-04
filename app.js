@@ -2,7 +2,6 @@ import {
   loginSuperAdmin,
   logoutCurrentUser,
   watchAuth,
-  getCurrentUserProfile,
   listInstitutes,
   createInstitute
 } from "./firebase-service.js";
@@ -274,19 +273,30 @@ watchAuth(async user => {
   state.screen = "loading";
   render();
   try {
-    state.profile = await getCurrentUserProfile(user.uid);
-    const allowed = state.profile && state.profile.userType === "superAdmin" && state.profile.accountStatus === "active";
-    if (!allowed) {
+    // Development access gate: only the configured HMOS Super Admin email is allowed.
+    // This avoids UID/profile mismatches while keeping other authenticated users blocked.
+    const allowedEmail = "hmos.superadmin@gmail.com";
+    const signedInEmail = String(user.email || "").trim().toLowerCase();
+    if (signedInEmail !== allowedEmail) {
       state.screen = "unauthorized";
-      render();
+      renderUnauthorized("This Firebase account is not the configured HMOS Super Admin account.");
       return;
     }
+    state.profile = {
+      id: user.uid,
+      displayName: "HMOS Super Admin",
+      userType: "superAdmin",
+      accountStatus: "active"
+    };
     state.institutes = await listInstitutes();
     state.screen = "admin-dashboard";
     render();
   } catch (error) {
+    console.error("HMOS dashboard initialization error:", error);
     state.screen = "unauthorized";
-    renderUnauthorized(error.code === "permission-denied" ? "Firestore rules are still deny-by-default. Publish the included v2.1 rules before using the dashboard." : undefined);
+    renderUnauthorized(error.code === "permission-denied"
+      ? "Firestore permission denied. Confirm the published rules allow authenticated access."
+      : "The account was authenticated, but the dashboard could not be initialized.");
   }
 });
 
