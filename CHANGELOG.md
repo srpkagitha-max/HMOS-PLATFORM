@@ -25,3 +25,14 @@
 - Fixed repeated detail cards and repeated action buttons on mobile.
 - Improved compact two-column actions and safe text wrapping.
 - Updated cache version to force fresh CSS and JavaScript.
+
+
+## v2.5.0 — Safe Institute Actions
+- Added premium in-app dialogs instead of browser confirm boxes.
+- Added modal Edit Institute workflow.
+- Added password reset confirmation, generator, copy and WhatsApp sharing.
+- Added 6-month, 1-year and 2-year subscription renewal choices with end-date previews.
+- Added activate/deactivate confirmations with progress and error states.
+- Added typed ARCHIVE protection and a safe restore flow.
+- Added dedicated Share Login dialog and secure password visibility messaging.
+- Updated mobile bottom-sheet layout and cache version.

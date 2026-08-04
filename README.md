@@ -19,3 +19,7 @@ Institute password verification is client-side for development. Before commercia
 
 ## Current build
 V2.4.1 Mobile UI Fix
+
+
+## Version 2.5
+Institute management actions now use safe, mobile-friendly dialogs for editing, access control, password resets, plan renewals, login sharing, archive and restore.

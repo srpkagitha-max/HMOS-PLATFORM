@@ -56,6 +56,78 @@ function collectForm(){return {instituteCode:document.querySelector("#f-code").v
 function validateInput(x){return x.instituteName&&x.ownerName&&/^\d{10}$/.test(x.ownerPhone)&&Number(x.studentLimit)>0;}
 function bindInstituteForm(existing=null){document.querySelector("#f-type").value=existing?.hostelType||"boys";if(!existing){document.querySelector("#f-password").value=generateTemporaryPassword();document.querySelector("#gen-password").onclick=()=>document.querySelector("#f-password").value=generateTemporaryPassword();document.querySelector("#gen-code").onclick=()=>document.querySelector("#f-code").value=generateInstituteCode(document.querySelector("#f-name").value||"HMOS");}document.querySelector("#institute-form-pro").onsubmit=async e=>{e.preventDefault();const x=collectForm(),m=document.querySelector("#form-msg"),b=document.querySelector("#save-institute");if(!validateInput(x)||(!existing&&(!x.instituteCode||!x.temporaryPassword))){m.textContent="Complete required fields and enter a valid 10-digit phone number.";m.className="form-message show error form-wide";return;}b.disabled=true;b.textContent="Saving…";try{if(existing){const updated=await updateInstitute(existing.id,x,state.authUser.uid);state.institutes=state.institutes.map(i=>i.id===existing.id?{...i,...updated}:i);notify("Institute updated successfully.");}else{const created=await createInstitute(x,state.authUser.uid);state.institutes=[created,...state.institutes];state.lastCredentials={instituteId:created.instituteId,instituteCode:created.instituteCode,instituteName:created.instituteName,temporaryPassword:created.temporaryPassword,subscriptionEnd:formatDate(created.subscriptionEnd)};notify("Institute created successfully.");}writeCache(state.institutes);state.screen="dashboard";render();}catch(err){m.textContent=err.code==="institute-code-exists"?"Institute code already exists.":"Could not save institute. Check Firestore rules.";m.className="form-message show error form-wide";b.disabled=false;b.innerHTML=`${existing?"Update":"Save"} Institute <span>→</span>`;}};}
 
+
+function copyText(value) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value);
+  const area = document.createElement("textarea");
+  area.value = value;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  document.execCommand("copy");
+  area.remove();
+  return Promise.resolve();
+}
+function futureDate(value, months) {
+  const current = dateOf(value);
+  const base = current && current > new Date() ? new Date(current) : new Date();
+  base.setMonth(base.getMonth() + Number(months || 12));
+  return base;
+}
+function closeModal() {
+  document.querySelector("#hmos-modal")?.remove();
+  document.body.classList.remove("modal-open");
+}
+function openModal({ title, eyebrow = "Institute action", content = "", tone = "default", wide = false, onReady }) {
+  closeModal();
+  document.body.insertAdjacentHTML("beforeend", `<div id="hmos-modal" class="modal-layer" role="presentation">
+    <section class="modal-card ${tone === "danger" ? "danger-modal" : ""} ${wide ? "modal-wide" : ""}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head"><div><span class="step">${esc(eyebrow)}</span><h3 id="modal-title">${esc(title)}</h3></div><button id="modal-close" class="modal-close" type="button" aria-label="Close">×</button></div>
+      <div class="modal-body">${content}</div>
+    </section></div>`);
+  document.body.classList.add("modal-open");
+  const layer = document.querySelector("#hmos-modal");
+  layer.onclick = event => { if (event.target === layer) closeModal(); };
+  document.querySelector("#modal-close").onclick = closeModal;
+  document.addEventListener("keydown", function escapeOnce(event) { if (event.key === "Escape") { closeModal(); document.removeEventListener("keydown", escapeOnce); } });
+  onReady?.(layer);
+}
+function modalMessage(text, type = "error") {
+  const el = document.querySelector("#modal-message");
+  if (!el) return;
+  el.textContent = text;
+  el.className = `form-message show ${type === "success" ? "success-message" : "error"}`;
+}
+function setActionBusy(button, busy, label = "Working…") {
+  if (!button) return;
+  if (busy) {
+    button.dataset.original = button.innerHTML;
+    button.disabled = true;
+    button.textContent = label;
+  } else {
+    button.disabled = false;
+    button.innerHTML = button.dataset.original || button.innerHTML;
+  }
+}
+function loginText(i, password = "") {
+  return `HMOS Institute Login\nInstitute: ${i.instituteName}\nCode: ${i.instituteCode}${password ? `\nTemporary Password: ${password}` : ""}\nPortal: ${location.origin}${location.pathname}`;
+}
+function showCredentialsModal(i, password) {
+  openModal({ title: "New Login Credentials", eyebrow: "Password reset successful", content: `
+    <div class="success-panel"><span>Institute</span><strong>${esc(i.instituteName)}</strong></div>
+    <div class="credential-modal-grid"><article><span>Institute Code</span><code>${esc(i.instituteCode)}</code></article><article><span>Temporary Password</span><code>${esc(password)}</code></article></div>
+    <p class="modal-note">This password is shown now for secure sharing. The institute must change it on first login.</p>
+    <div class="modal-actions"><button id="copy-new-login" class="secondary" type="button">Copy Login</button><button id="share-new-login" class="primary" type="button">Share on WhatsApp</button></div>`,
+    onReady() {
+      document.querySelector("#copy-new-login").onclick = async () => { await copyText(loginText(i, password)); modalMessage("Login details copied.", "success"); };
+      document.querySelector("#share-new-login").onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent(loginText(i, password))}`, "_blank", "noopener");
+      document.querySelector(".modal-body").insertAdjacentHTML("beforeend", '<p id="modal-message" class="form-message"></p>');
+    }
+  });
+}
+
 function selected(){return state.institutes.find(i=>i.id===state.selectedId);}
 function renderManage(){
   const i=selected();
@@ -85,7 +157,7 @@ function renderManage(){
         <button id="edit" class="action-button" type="button">✏️ <span>Edit Details</span></button>
         <button id="toggle" class="action-button" type="button">${i.status==="active"?"⏸":"▶"} <span>${i.status==="active"?"Deactivate":"Activate"}</span></button>
         <button id="reset" class="action-button" type="button">🔐 <span>Reset Password</span></button>
-        <button id="renew" class="action-button" type="button">🔄 <span>Renew 1 Year</span></button>
+        <button id="renew" class="action-button" type="button">🔄 <span>Renew Plan</span></button>
         <button id="share" class="action-button" type="button">💬 <span>Share Login</span></button>
         <button id="archive" class="action-button danger-action" type="button">${i.isArchived?"↩":"🗄"} <span>${i.isArchived?"Restore":"Archive"}</span></button>
       </section>
@@ -94,16 +166,58 @@ function renderManage(){
 
   bindCommon();
   document.querySelector("#back-dashboard").onclick=()=>{state.screen="dashboard";render();};
-  document.querySelector("#edit").onclick=()=>{state.screen="edit";render();};
-  document.querySelector("#toggle").onclick=async()=>{await setInstituteStatus(i.id,i.status==="active"?"inactive":"active",state.authUser.uid);i.status=i.status==="active"?"inactive":"active";writeCache(state.institutes);notify(`Institute ${i.status}.`);state.screen="dashboard";render();};
-  document.querySelector("#reset").onclick=async()=>{const p=generateTemporaryPassword();if(!confirm(`Reset institute password to ${p}?`))return;await resetInstitutePassword(i.id,p,state.authUser.uid);state.lastCredentials={instituteId:i.instituteId,instituteCode:i.instituteCode,instituteName:i.instituteName,temporaryPassword:p,subscriptionEnd:formatDate(i.subscriptionEnd)};notify("Temporary password reset successfully.");state.screen="dashboard";render();};
-  document.querySelector("#renew").onclick=async()=>{if(!confirm("Extend subscription by 1 year?"))return;const end=await renewSubscription(i.id,12,state.authUser.uid);i.subscriptionEnd=end;i.status="active";i.subscriptionStatus="active";writeCache(state.institutes);notify(`Subscription renewed until ${end.toLocaleDateString("en-IN")}.`);state.screen="dashboard";render();};
-  document.querySelector("#share").onclick=()=>window.open(`https://wa.me/?text=${encodeURIComponent(`HMOS Institute Login\nInstitute: ${i.instituteName}\nCode: ${i.instituteCode}\nContact HMOS Super Admin for current password.`)}`,"_blank","noopener");
-  document.querySelector("#archive").onclick=async()=>{if(!confirm(i.isArchived?"Restore this institute?":"Archive this institute and block login?"))return;if(i.isArchived){await restoreInstitute(i.id,state.authUser.uid);i.isArchived=false;i.status="active";}else{await archiveInstitute(i.id,state.authUser.uid);i.isArchived=true;i.status="inactive";}writeCache(state.institutes);notify(i.isArchived?"Institute archived.":"Institute restored.");state.screen="dashboard";render();};
+
+  document.querySelector("#edit").onclick=()=>openModal({
+    title:`Edit ${i.instituteName}`, eyebrow:"Institute details", wide:true,
+    content:`<p class="modal-intro">Update owner, location, hostel type and student capacity.</p>${instituteForm(i)}`,
+    onReady(){ bindInstituteForm(i); }
+  });
+
+  document.querySelector("#toggle").onclick=()=>{
+    const next=i.status==="active"?"inactive":"active";
+    openModal({title:`${next==="active"?"Activate":"Deactivate"} Institute`,eyebrow:"Portal access",tone:next==="inactive"?"danger":"default",content:`
+      <div class="confirm-icon">${next==="active"?"▶":"⏸"}</div><p class="confirm-copy">${next==="active"?"Institute login access will be restored.":"Institute login will be blocked until you activate it again."}</p>
+      <p id="modal-message" class="form-message"></p><div class="modal-actions"><button class="secondary" id="cancel-action" type="button">Cancel</button><button class="primary ${next==="inactive"?"danger-primary":""}" id="confirm-action" type="button">${next==="active"?"Activate":"Deactivate"}</button></div>`,
+      onReady(){document.querySelector("#cancel-action").onclick=closeModal;document.querySelector("#confirm-action").onclick=async e=>{const b=e.currentTarget;setActionBusy(b,true,"Updating…");try{await setInstituteStatus(i.id,next,state.authUser.uid);i.status=next;writeCache(state.institutes);closeModal();notify(`Institute ${next}.`);state.screen="dashboard";render();}catch(err){modalMessage("Could not update portal access.");setActionBusy(b,false);}};}
+    });
+  };
+
+  document.querySelector("#reset").onclick=()=>{
+    let password=generateTemporaryPassword();
+    openModal({title:"Reset Institute Password",eyebrow:"Security action",content:`
+      <p class="modal-intro">Generate a temporary password for <strong>${esc(i.instituteName)}</strong>.</p>
+      <label class="field"><span>New Temporary Password</span><div class="input-action"><input id="reset-password-value" value="${esc(password)}"/><button id="regenerate-password" class="mini-button" type="button">Generate</button></div></label>
+      <label class="check confirm-check"><input id="password-confirm" type="checkbox"/><span>I understand the old password will stop working immediately.</span></label>
+      <p id="modal-message" class="form-message"></p><div class="modal-actions"><button class="secondary" id="cancel-reset" type="button">Cancel</button><button class="primary" id="confirm-reset" type="button">Reset Password</button></div>`,
+      onReady(){
+        document.querySelector("#cancel-reset").onclick=closeModal;
+        document.querySelector("#regenerate-password").onclick=()=>{password=generateTemporaryPassword();document.querySelector("#reset-password-value").value=password;};
+        document.querySelector("#confirm-reset").onclick=async e=>{password=document.querySelector("#reset-password-value").value.trim();if(password.length<8)return modalMessage("Password must contain at least 8 characters.");if(!document.querySelector("#password-confirm").checked)return modalMessage("Confirm that the old password will stop working.");const b=e.currentTarget;setActionBusy(b,true,"Resetting…");try{const saved=await resetInstitutePassword(i.id,password,state.authUser.uid);state.lastCredentials={instituteId:i.instituteId,instituteCode:i.instituteCode,instituteName:i.instituteName,temporaryPassword:saved,subscriptionEnd:formatDate(i.subscriptionEnd)};closeModal();showCredentialsModal(i,saved);}catch(err){modalMessage("Could not reset the password.");setActionBusy(b,false);}};
+      }
+    });
+  };
+
+  document.querySelector("#renew").onclick=()=>openModal({title:"Renew Subscription",eyebrow:"Plan renewal",content:`
+    <p class="modal-intro">Current end date: <strong>${formatDate(i.subscriptionEnd)}</strong></p>
+    <div class="plan-options"><label><input type="radio" name="renew-months" value="6"><span><strong>6 Months</strong><small>Until ${futureDate(i.subscriptionEnd,6).toLocaleDateString("en-IN")}</small></span></label><label class="selected-plan"><input type="radio" name="renew-months" value="12" checked><span><strong>1 Year</strong><small>Until ${futureDate(i.subscriptionEnd,12).toLocaleDateString("en-IN")}</small></span></label><label><input type="radio" name="renew-months" value="24"><span><strong>2 Years</strong><small>Until ${futureDate(i.subscriptionEnd,24).toLocaleDateString("en-IN")}</small></span></label></div>
+    <p id="modal-message" class="form-message"></p><div class="modal-actions"><button class="secondary" id="cancel-renew" type="button">Cancel</button><button class="primary" id="confirm-renew" type="button">Renew Subscription</button></div>`,
+    onReady(){document.querySelector("#cancel-renew").onclick=closeModal;document.querySelectorAll('input[name="renew-months"]').forEach(r=>r.onchange=()=>{document.querySelectorAll(".plan-options label").forEach(x=>x.classList.remove("selected-plan"));r.closest("label").classList.add("selected-plan");});document.querySelector("#confirm-renew").onclick=async e=>{const months=Number(document.querySelector('input[name="renew-months"]:checked').value);const b=e.currentTarget;setActionBusy(b,true,"Renewing…");try{const end=await renewSubscription(i.id,months,state.authUser.uid);i.subscriptionEnd=end;i.status="active";i.subscriptionStatus="active";writeCache(state.institutes);closeModal();notify(`Subscription renewed until ${end.toLocaleDateString("en-IN")}.`);state.screen="dashboard";render();}catch(err){modalMessage("Could not renew subscription.");setActionBusy(b,false);}};}
+  });
+
+  document.querySelector("#share").onclick=()=>{
+    const known=state.lastCredentials?.instituteCode===i.instituteCode?state.lastCredentials.temporaryPassword:"";
+    const text=loginText(i,known);
+    openModal({title:"Share Institute Login",eyebrow:"Login credentials",content:`<div class="credential-modal-grid"><article><span>Institute Code</span><code>${esc(i.instituteCode)}</code></article><article><span>Password</span><code>${known?esc(known):"Hidden for security"}</code></article></div>${known?"":'<p class="modal-note warning-note">The current password cannot be recovered. Reset it first to share a new password.</p>'}<p id="modal-message" class="form-message"></p><div class="modal-actions"><button id="copy-login-modal" class="secondary" type="button">Copy Details</button><button id="whatsapp-login-modal" class="primary" type="button">WhatsApp</button></div>`,onReady(){document.querySelector("#copy-login-modal").onclick=async()=>{await copyText(text);modalMessage("Login details copied.","success");};document.querySelector("#whatsapp-login-modal").onclick=()=>window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank","noopener");}});
+  };
+
+  document.querySelector("#archive").onclick=()=>{
+    const restoring=Boolean(i.isArchived);
+    openModal({title:restoring?"Restore Institute":"Archive Institute",eyebrow:"Institute lifecycle",tone:restoring?"default":"danger",content:`<div class="confirm-icon">${restoring?"↩":"🗄"}</div><p class="confirm-copy">${restoring?"The institute will return to active status and portal access will be restored.":"The institute will be hidden from active operations and its login will be blocked. Data will not be permanently deleted."}</p>${restoring?"":`<label class="field"><span>Type ARCHIVE to confirm</span><input id="archive-word" autocomplete="off" placeholder="ARCHIVE"/></label>`}<p id="modal-message" class="form-message"></p><div class="modal-actions"><button class="secondary" id="cancel-archive" type="button">Cancel</button><button class="primary ${restoring?"":"danger-primary"}" id="confirm-archive" type="button">${restoring?"Restore":"Archive"}</button></div>`,onReady(){document.querySelector("#cancel-archive").onclick=closeModal;document.querySelector("#confirm-archive").onclick=async e=>{if(!restoring&&document.querySelector("#archive-word").value.trim().toUpperCase()!=="ARCHIVE")return modalMessage("Type ARCHIVE to continue.");const b=e.currentTarget;setActionBusy(b,true,restoring?"Restoring…":"Archiving…");try{if(restoring){await restoreInstitute(i.id,state.authUser.uid);i.isArchived=false;i.status="active";}else{await archiveInstitute(i.id,state.authUser.uid);i.isArchived=true;i.status="inactive";}writeCache(state.institutes);closeModal();notify(i.isArchived?"Institute archived safely.":"Institute restored successfully.");state.screen="dashboard";render();}catch(err){modalMessage(restoring?"Could not restore institute.":"Could not archive institute.");setActionBusy(b,false);}};}});
+  };
 }
 function renderEdit(){const i=selected();if(!i){state.screen="dashboard";return render();}app.innerHTML=dashboardShell(`<button id="back-manage" class="back">← Manage Institute</button><div class="card-heading"><span class="step">Edit institute</span><h2>${esc(i.instituteName)}</h2><p>Update owner, location and capacity details.</p></div>${instituteForm(i)}`);bindCommon();document.querySelector("#back-manage").onclick=()=>{state.screen="manage";render();};bindInstituteForm(i);}
 
-function render(){if(state.screen==="super-admin")return renderSuperAdmin();if(state.screen==="dashboard")return renderAdminDashboard();if(state.screen==="create")return renderCreate();if(state.screen==="manage")return renderManage();if(state.screen==="edit")return renderEdit();if(state.screen==="institute-portal")return renderInstitutePortal();return renderInstituteLogin();}
+function render(){if(state.screen==="super-admin")return renderSuperAdmin();if(state.screen==="dashboard")return renderAdminDashboard();if(state.screen==="create")return renderCreate();if(state.screen==="manage")return renderManage();if(state.screen==="institute-portal")return renderInstitutePortal();return renderInstituteLogin();}
 
-watchAuth(async user=>{state.authUser=user;if(!user){if(["dashboard","create","manage","edit"].includes(state.screen))state.screen="super-admin";render();return;}if(user.email?.toLowerCase()!==SUPER_ADMIN_EMAIL){await logoutCurrentUser();return renderSuperAdmin("This email is not authorized as HMOS Super Admin.");}state.institutes=readCache();state.screen="dashboard";render();try{state.institutes=await listInstitutes();writeCache(state.institutes);if(state.screen==="dashboard")renderAdminDashboard();}catch(err){console.error(err);}});
+watchAuth(async user=>{state.authUser=user;if(!user){if(["dashboard","create","manage"].includes(state.screen))state.screen="super-admin";render();return;}if(user.email?.toLowerCase()!==SUPER_ADMIN_EMAIL){await logoutCurrentUser();return renderSuperAdmin("This email is not authorized as HMOS Super Admin.");}state.institutes=readCache();state.screen="dashboard";render();try{state.institutes=await listInstitutes();writeCache(state.institutes);if(state.screen==="dashboard")renderAdminDashboard();}catch(err){console.error(err);}});
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));
