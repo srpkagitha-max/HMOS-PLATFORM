@@ -7,17 +7,43 @@
   <meta name="description" content="Hostel Management Operating System – Multi-Institute Hostel Management Platform" />
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="//www.gstatic.com" />
-  <link rel="modulepreload" href="app.js" />
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
   <title>Hostel Management Operating System</title>
   <style>
-    .boot-placeholder{min-height:100vh;background:#0b447d;padding:18vh 8vw;color:#fff;font-family:system-ui,sans-serif}.boot-logo{font-size:2rem;font-weight:800;letter-spacing:.28em}.boot-line{height:18px;max-width:430px;margin-top:28px;border-radius:10px;background:rgba(255,255,255,.22)}.boot-line.short{max-width:280px;margin-top:14px}
+    .boot-screen{min-height:100vh;background:#0f4d86;color:#fff;padding:18vh 8vw 8vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+    .boot-screen h1{font-size:clamp(42px,13vw,76px);letter-spacing:.18em;margin:0 0 36px}
+    .boot-card{max-width:540px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:22px;padding:22px}
+    .boot-line{height:14px;border-radius:999px;background:rgba(255,255,255,.24);margin:13px 0;overflow:hidden}
+    .boot-line::after{content:"";display:block;width:38%;height:100%;background:rgba(255,255,255,.65);border-radius:inherit;animation:boot 1.15s ease-in-out infinite alternate}
+    .boot-line.short{width:82%}.boot-status{margin:18px 0 0;font-size:15px;opacity:.9}
+    .boot-retry{display:none;margin-top:18px;border:0;border-radius:14px;padding:13px 18px;font-weight:700;color:#0b3b73;background:#fff}
+    @keyframes boot{from{transform:translateX(-15%)}to{transform:translateX(180%)}}
   </style>
 </head>
 <body>
-  <div id="app" aria-live="polite"><div class="boot-placeholder" role="status" aria-label="Loading HMOS"><div class="boot-logo">HMOS</div><div class="boot-line"></div><div class="boot-line short"></div></div></div>
+  <div id="app" aria-live="polite">
+    <main class="boot-screen" id="boot-screen">
+      <h1>HMOS</h1>
+      <div class="boot-card">
+        <div class="boot-line"></div><div class="boot-line short"></div>
+        <p class="boot-status" id="boot-status">Opening secure HMOS access…</p>
+        <button class="boot-retry" id="boot-retry" type="button">Reload App</button>
+      </div>
+    </main>
+  </div>
   <noscript>JavaScript is required to use HMOS.</noscript>
-  <script type="module" src="app.js"></script>
+  <script>
+    window.__HMOS_BOOT_TIMER__ = setTimeout(function () {
+      var status = document.getElementById('boot-status');
+      var retry = document.getElementById('boot-retry');
+      if (status) status.textContent = 'Network is taking longer than expected. Tap Reload App.';
+      if (retry) retry.style.display = 'inline-block';
+    }, 12000);
+    document.addEventListener('click', function (event) {
+      if (event.target && event.target.id === 'boot-retry') location.reload();
+    });
+  </script>
+  <script type="module" src="app.js?v=2.3.2"></script>
 </body>
 </html>

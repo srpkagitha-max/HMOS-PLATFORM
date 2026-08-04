@@ -1,9 +1,9 @@
-const CACHE = "hmos-v2-3-1-instant-open";
-const ASSETS = ["./", "index.html", "styles.css", "app.js", "firebase-config.js", "firebase-service.js", "manifest.json"];
+const CACHE = "hmos-v2-3-2-stable-fast";
+const STATIC_ASSETS = ["./", "index.html", "styles.css", "manifest.json"];
 
 self.addEventListener("install", event => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS)));
 });
 
 self.addEventListener("activate", event => {
@@ -18,12 +18,12 @@ self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  const isFreshCode = event.request.mode === "navigate" || /\.(?:js|html)$/.test(url.pathname);
-  if (isFreshCode) {
-    event.respondWith(fetch(event.request).then(response => {
-      if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request.mode === "navigate" ? "index.html" : event.request, response.clone()));
+  const isCode = /\.(?:js|html)$/.test(url.pathname) || event.request.mode === "navigate";
+  if (isCode) {
+    event.respondWith(fetch(event.request, { cache: "no-store" }).then(response => {
+      if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
       return response;
-    }).catch(() => caches.match(event.request.mode === "navigate" ? "index.html" : event.request)));
+    }).catch(() => caches.match(event.request).then(hit => hit || caches.match("index.html"))));
     return;
   }
 
