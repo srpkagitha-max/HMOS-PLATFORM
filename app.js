@@ -2,8 +2,12 @@ import {
   loginSuperAdmin,
   logoutCurrentUser,
   watchAuth,
+  getCurrentUserProfile,
   listInstitutes,
-  createInstitute
+  createInstitute,
+  loginInstitute,
+  generateInstituteCode,
+  generateTemporaryPassword
 } from "./firebase-service.js";
 
 const app = document.querySelector("#app");
@@ -12,8 +16,21 @@ const state = {
   authUser: null,
   profile: null,
   institutes: [],
-  loading: false
+  loading: false,
+  lastCredentials: null,
+  instituteSession: null
 };
+
+const INSTITUTES_CACHE_KEY = "hmosInstitutesCacheV23";
+const SUPER_ADMIN_EMAIL = "hmos.superadmin@gmail.com";
+
+function readInstitutesCache() {
+  try { return JSON.parse(localStorage.getItem(INSTITUTES_CACHE_KEY) || "[]"); } catch { return []; }
+}
+
+function writeInstitutesCache(items) {
+  try { localStorage.setItem(INSTITUTES_CACHE_KEY, JSON.stringify(items)); } catch {}
+}
 
 const escapeHtml = (value = "") => String(value)
   .replaceAll("&", "&amp;")
@@ -68,11 +85,34 @@ function renderInstituteLogin(message = "") {
       <button id="super-admin-link" class="text-link" type="button">Super Admin Login</button>
     </section>`);
 
-  document.querySelector("#institute-form").addEventListener("submit", event => {
+  document.querySelector("#institute-form").addEventListener("submit", async event => {
     event.preventDefault();
     const messageEl = document.querySelector("#form-message");
-    messageEl.textContent = "Institute verification will be enabled after the server-side access-password function is deployed.";
-    messageEl.className = "form-message show info";
+    const button = event.currentTarget.querySelector("button[type='submit']");
+    const instituteCode = document.querySelector("#institute-id").value.trim();
+    const password = document.querySelector("#institute-password").value;
+    if (!instituteCode || !password) {
+      messageEl.textContent = "Enter the institute code and password.";
+      messageEl.className = "form-message show error";
+      return;
+    }
+    button.disabled = true;
+    button.textContent = "Checking…";
+    try {
+      state.instituteSession = await loginInstitute(instituteCode, password);
+      renderInstitutePortal();
+    } catch (error) {
+      const messages = {
+        "invalid-institute-credential": "Incorrect institute code or password.",
+        "institute-inactive": "This institute account is inactive.",
+        "subscription-expired": "The institute subscription has expired.",
+        "permission-denied": "Publish the included Firestore rules before using institute login."
+      };
+      messageEl.textContent = messages[error?.code] || "Institute login failed.";
+      messageEl.className = "form-message show error";
+      button.disabled = false;
+      button.innerHTML = "Continue <span>→</span>";
+    }
   });
   document.querySelector("#super-admin-link").addEventListener("click", () => {
     state.screen = "super-admin";
@@ -137,6 +177,23 @@ function renderSuperAdmin(message = "", status = "") {
   });
 }
 
+function renderInstitutePortal() {
+  const institute = state.instituteSession;
+  app.innerHTML = shell(`
+    <section class="card login-card">
+      <span class="step success-step">Institute access verified</span>
+      <h2>${escapeHtml(institute?.instituteName || "Institute Portal")}</h2>
+      <p class="blocked-copy">Code: <strong>${escapeHtml(institute?.instituteCode || "")}</strong></p>
+      <div class="notice"><strong>Institute portal is ready.</strong><p>Students, rooms, fees and admissions modules will be connected in Phase 2.</p></div>
+      <button id="institute-logout" class="primary" type="button">Return to Login</button>
+    </section>`, true);
+  document.querySelector("#institute-logout").addEventListener("click", () => {
+    state.instituteSession = null;
+    state.screen = "institute";
+    render();
+  });
+}
+
 function dashboardShell(content) {
   const email = state.authUser?.email || "Authorized administrator";
   return shell(`
@@ -171,6 +228,7 @@ function renderAdminDashboard(message = "", status = "") {
     </div>
     <div class="section-title"><div><h3>Institute Management</h3><p>Create and review institutes registered on the platform.</p></div><button id="open-create" class="primary compact-primary" type="button">+ Create Institute</button></div>
     <p id="dashboard-message" class="form-message ${message ? `show ${status}` : ""}">${escapeHtml(message)}</p>
+    ${state.lastCredentials ? `<div class="credentials-card"><div><span class="step success-step">Generated institute login</span><strong>${escapeHtml(state.lastCredentials.instituteCode)}</strong><small>ID: ${escapeHtml(state.lastCredentials.instituteId)}</small></div><div class="credential-value"><span>Temporary Password</span><code>${escapeHtml(state.lastCredentials.temporaryPassword)}</code><small>Plan valid until ${escapeHtml(state.lastCredentials.subscriptionEnd)}</small></div><button id="copy-credentials" class="secondary" type="button">Copy Login</button></div>` : ""}
     ${instituteRows()}
     <div class="setup-note"><strong>Security checkpoint</strong><p>Institute portal passwords are intentionally not stored in the browser. Secure password creation will be added through a server function in the next build.</p></div>
   `);
@@ -182,18 +240,27 @@ function renderCreateInstitute(message = "", status = "") {
     <button id="back-dashboard" class="back" type="button">← Dashboard</button>
     <div class="card-heading"><span class="step">Institute onboarding</span><h2>Create Institute</h2><p>Add the hostel identity and yearly plan limits.</p></div>
     <form id="create-institute-form" class="form-grid" novalidate>
-      ${field({ id: "new-code", label: "Institute Code", placeholder: "Example: ABC01" })}
+      <label class="field" for="new-code"><span>Institute Code</span><div class="input-action"><input id="new-code" name="new-code" type="text" placeholder="Auto-generated or enter code" autocomplete="off" required /><button id="generate-code" class="mini-button" type="button">Generate</button></div></label>
       ${field({ id: "new-name", label: "Institute Name", placeholder: "Enter hostel name" })}
       <label class="field" for="new-type"><span>Hostel Type</span><select id="new-type" required><option value="boys">Boys Hostel</option><option value="girls">Girls Hostel</option><option value="mixed">Mixed Hostel</option></select></label>
       ${field({ id: "new-owner", label: "Owner Name", placeholder: "Enter owner name" })}
       ${field({ id: "new-phone", label: "Owner Phone", type: "tel", placeholder: "10-digit mobile number" })}
       ${field({ id: "new-limit", label: "Student Limit", type: "number", placeholder: "100", min: "1" })}
+      <label class="field form-wide" for="new-password"><span>Temporary Institute Password</span><div class="input-action"><input id="new-password" name="new-password" type="text" placeholder="Generate secure password" autocomplete="off" required /><button id="generate-password" class="mini-button" type="button">Generate</button></div></label>
       <p id="create-message" class="form-message ${message ? `show ${status}` : ""}">${escapeHtml(message)}</p>
       <button id="create-submit" class="primary form-wide" type="submit">Save Institute <span>→</span></button>
     </form>
   `);
   document.querySelector("#back-dashboard").addEventListener("click", () => { state.screen = "admin-dashboard"; render(); });
   document.querySelector("#logout").addEventListener("click", logoutHandler);
+  const nameInput = document.querySelector("#new-name");
+  document.querySelector("#generate-code").addEventListener("click", () => {
+    document.querySelector("#new-code").value = generateInstituteCode(nameInput.value || "HMOS");
+  });
+  document.querySelector("#generate-password").addEventListener("click", () => {
+    document.querySelector("#new-password").value = generateTemporaryPassword();
+  });
+  document.querySelector("#new-password").value = generateTemporaryPassword();
   document.querySelector("#create-institute-form").addEventListener("submit", submitInstitute);
 }
 
@@ -207,9 +274,10 @@ async function submitInstitute(event) {
     hostelType: document.querySelector("#new-type").value,
     ownerName: document.querySelector("#new-owner").value.trim(),
     ownerPhone: document.querySelector("#new-phone").value.trim(),
-    studentLimit: document.querySelector("#new-limit").value
+    studentLimit: document.querySelector("#new-limit").value,
+    temporaryPassword: document.querySelector("#new-password").value.trim()
   };
-  if (!input.instituteCode || !input.instituteName || !input.ownerName || !/^\d{10}$/.test(input.ownerPhone) || Number(input.studentLimit) < 1) {
+  if (!input.instituteCode || !input.instituteName || !input.ownerName || !input.temporaryPassword || !/^\d{10}$/.test(input.ownerPhone) || Number(input.studentLimit) < 1) {
     messageEl.textContent = "Complete all fields and enter a valid 10-digit phone number.";
     messageEl.className = "form-message show error form-wide";
     return;
@@ -217,14 +285,23 @@ async function submitInstitute(event) {
   button.disabled = true;
   button.textContent = "Saving…";
   try {
-    await createInstitute(input, state.authUser.uid);
-    state.institutes = await listInstitutes();
+    const created = await createInstitute(input, state.authUser.uid);
+    state.institutes = [created, ...state.institutes];
+    writeInstitutesCache(state.institutes);
+    state.lastCredentials = {
+      instituteId: created.instituteId,
+      instituteCode: created.instituteCode,
+      temporaryPassword: created.temporaryPassword,
+      subscriptionEnd: created.subscriptionEnd?.toDate ? created.subscriptionEnd.toDate().toLocaleDateString("en-IN") : "1 year"
+    };
     state.screen = "admin-dashboard";
     renderAdminDashboard("Institute created successfully.", "success-message");
   } catch (error) {
     messageEl.textContent = error.code === "permission-denied"
-      ? "Firestore permission denied. Publish the included v2.1 security rules and create your Super Admin user profile first."
-      : "Could not create the institute. Please try again.";
+      ? "Firestore permission denied. Publish the included v2.3 rules."
+      : error.code === "institute-code-exists"
+        ? "This institute code already exists. Generate a new code."
+        : "Could not create the institute. Please try again.";
     messageEl.className = "form-message show error form-wide";
     button.disabled = false;
     button.innerHTML = "Save Institute <span>→</span>";
@@ -242,6 +319,14 @@ async function logoutHandler() {
 function bindDashboardEvents() {
   document.querySelector("#logout").addEventListener("click", logoutHandler);
   document.querySelector("#open-create").addEventListener("click", () => { state.screen = "create-institute"; render(); });
+  const copyButton = document.querySelector("#copy-credentials");
+  if (copyButton && state.lastCredentials) {
+    copyButton.addEventListener("click", async () => {
+      const text = `HMOS Institute Login\nCode: ${state.lastCredentials.instituteCode}\nPassword: ${state.lastCredentials.temporaryPassword}`;
+      try { await navigator.clipboard.writeText(text); copyButton.textContent = "Copied"; }
+      catch { copyButton.textContent = "Copy failed"; }
+    });
+  }
 }
 
 function renderUnauthorized(reason = "This account is not authorized as the HMOS Super Admin.") {
@@ -260,6 +345,7 @@ function render() {
   if (state.screen === "create-institute") return renderCreateInstitute();
   if (state.screen === "unauthorized") return renderUnauthorized();
   if (state.screen === "loading") return renderLoading();
+  if (state.screen === "institute-portal") return renderInstitutePortal();
   return renderInstituteLogin();
 }
 
@@ -270,33 +356,38 @@ watchAuth(async user => {
     render();
     return;
   }
-  state.screen = "loading";
-  render();
+
+  const cached = readInstitutesCache();
+  if (cached.length) {
+    state.institutes = cached;
+    state.screen = "admin-dashboard";
+    render();
+  } else {
+    state.screen = "loading";
+    render();
+  }
+
   try {
-    // Development access gate: only the configured HMOS Super Admin email is allowed.
-    // This avoids UID/profile mismatches while keeping other authenticated users blocked.
-    const allowedEmail = "hmos.superadmin@gmail.com";
-    const signedInEmail = String(user.email || "").trim().toLowerCase();
-    if (signedInEmail !== allowedEmail) {
+    const [profile, institutes] = await Promise.all([
+      getCurrentUserProfile(user.uid).catch(() => null),
+      listInstitutes()
+    ]);
+    state.profile = profile;
+    const emailAllowed = String(user.email || "").toLowerCase() === SUPER_ADMIN_EMAIL;
+    const profileAllowed = profile && profile.userType === "superAdmin" && profile.accountStatus === "active";
+    if (!emailAllowed && !profileAllowed) {
       state.screen = "unauthorized";
-      renderUnauthorized("This Firebase account is not the configured HMOS Super Admin account.");
+      render();
       return;
     }
-    state.profile = {
-      id: user.uid,
-      displayName: "HMOS Super Admin",
-      userType: "superAdmin",
-      accountStatus: "active"
-    };
-    state.institutes = await listInstitutes();
+    state.institutes = institutes;
+    writeInstitutesCache(institutes);
     state.screen = "admin-dashboard";
     render();
   } catch (error) {
-    console.error("HMOS dashboard initialization error:", error);
+    if (String(user.email || "").toLowerCase() === SUPER_ADMIN_EMAIL && state.institutes.length) return;
     state.screen = "unauthorized";
-    renderUnauthorized(error.code === "permission-denied"
-      ? "Firestore permission denied. Confirm the published rules allow authenticated access."
-      : "The account was authenticated, but the dashboard could not be initialized.");
+    renderUnauthorized(error.code === "permission-denied" ? "Publish the included v2.3 Firestore rules before using the dashboard." : undefined);
   }
 });
 

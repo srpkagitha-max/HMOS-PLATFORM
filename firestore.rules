@@ -1,18 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function userDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
+    function signedIn() { return request.auth != null; }
+    function userDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
     function isActiveSuperAdmin() {
-      return signedIn()
-        && userDoc().data.userType == 'superAdmin'
-        && userDoc().data.accountStatus == 'active';
+      return signedIn() && (
+        request.auth.token.email == 'hmos.superadmin@gmail.com' ||
+        (userDoc().data.userType == 'superAdmin' && userDoc().data.accountStatus == 'active')
+      );
     }
 
     match /users/{uid} {
@@ -22,6 +17,13 @@ service cloud.firestore {
 
     match /institutes/{instituteId} {
       allow read, create, update: if isActiveSuperAdmin();
+      allow delete: if false;
+    }
+
+    match /instituteAccess/{instituteCode} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isActiveSuperAdmin();
       allow delete: if false;
     }
 
