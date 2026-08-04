@@ -1,3 +1,7 @@
+# HMOS V2.9.0
+
+Student Login and Student Portal foundation. Upload the V2.9.0 files and publish firestore.rules.
+
 # HMOS V2.8.2 – Admission Validation Fix
 
 - New executable filenames force Chrome to load the latest admission code.

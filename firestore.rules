@@ -1,81 +1,33 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function userDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
-    function isActiveSuperAdmin() {
-      return signedIn() && (
-        request.auth.token.email == 'hmos.superadmin@gmail.com' ||
-        (userDoc().data.userType == 'superAdmin' && userDoc().data.accountStatus == 'active')
-      );
-    }
+    function isSuperAdmin() { return signedIn() && request.auth.token.email == "hmos.superadmin@gmail.com"; }
 
-    match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isActiveSuperAdmin());
-      allow create, update, delete: if false;
-    }
-
+    match /users/{userId} { allow read: if signedIn(); allow create, update, delete: if isSuperAdmin(); }
     match /institutes/{instituteId} {
-      allow get: if true;
-      allow list, create: if isActiveSuperAdmin();
-      allow update: if isActiveSuperAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentStudents', 'updatedAt']) &&
-        request.resource.data.currentStudents == resource.data.currentStudents + 1 &&
-        request.resource.data.currentStudents <= resource.data.studentLimit
-      );
-      allow delete: if false;
+      allow get: if true; allow list, create, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["currentStudents","updatedAt"]);
     }
-
     match /instituteAccess/{instituteCode} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if isActiveSuperAdmin();
-      allow update: if isActiveSuperAdmin() || (
-        resource.data.status == 'active' &&
-        request.resource.data.instituteId == resource.data.instituteId &&
-        request.resource.data.instituteCode == resource.data.instituteCode &&
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['passwordHash', 'mustChangePassword', 'updatedAt'])
-      );
-      allow delete: if false;
+      allow get: if true; allow list: if false; allow create, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["passwordHash","mustChangePassword","updatedAt"]);
     }
-
     match /admissions/{admissionId} {
-      allow create: if request.resource.data.admissionId == admissionId
-        && request.resource.data.instituteCode is string
-        && request.resource.data.instituteId is string
-        && request.resource.data.studentId is string
-        && request.resource.data.studentName is string
-        && request.resource.data.parentPhone is string
-        && request.resource.data.status == 'approved'
-        && request.resource.data.studentAccountCreated == true;
-      allow read, update, delete: if isActiveSuperAdmin();
+      allow create: if request.resource.data.admissionId == admissionId && request.resource.data.studentId is string && request.resource.data.instituteId is string && request.resource.data.instituteCode is string && request.resource.data.studentName is string && request.resource.data.parentName is string && request.resource.data.parentPhone is string;
+      allow get: if true; allow list, update, delete: if isSuperAdmin();
     }
-
     match /students/{studentId} {
-      allow get: if true;
-      allow list: if isActiveSuperAdmin();
-      allow create: if request.resource.data.studentId == studentId
-        && request.resource.data.instituteId is string
-        && request.resource.data.instituteCode is string
-        && request.resource.data.studentName is string
-        && request.resource.data.accountStatus == 'active';
-      allow update, delete: if isActiveSuperAdmin();
+      allow create: if request.resource.data.studentId == studentId && request.resource.data.instituteId is string && request.resource.data.instituteCode is string && request.resource.data.studentName is string;
+      allow get: if true; allow list, update, delete: if isSuperAdmin();
     }
-
     match /studentAccess/{studentId} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if request.resource.data.studentId == studentId
-        && request.resource.data.instituteId is string
-        && request.resource.data.passwordHash is string
-        && request.resource.data.mustChangePassword == true
-        && request.resource.data.accountStatus == 'active';
-      allow update, delete: if isActiveSuperAdmin();
+      allow get: if true; allow list: if false;
+      allow create: if request.resource.data.studentId == studentId && request.resource.data.instituteId is string && request.resource.data.instituteCode is string && request.resource.data.passwordHash is string;
+      allow update: if isSuperAdmin() || (resource.data.accountStatus == "active" && request.resource.data.studentId == resource.data.studentId && request.resource.data.instituteId == resource.data.instituteId && request.resource.data.instituteCode == resource.data.instituteCode && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["passwordHash","mustChangePassword","updatedAt"]));
+      allow delete: if isSuperAdmin();
     }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }

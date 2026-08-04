@@ -43,3 +43,7 @@
 /* V2.8.1 Admission completion */
 .student-login-card{margin:20px 0;padding:18px;border:1px solid #bfe3cf;border-radius:18px;background:#eefaf3;text-align:left}.student-login-card p{margin:12px 0;color:var(--muted);font-size:13px;line-height:1.5}.student-login-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.student-login-grid article{padding:14px;border:1px solid #cfe5d8;border-radius:14px;background:#fff}.student-login-grid span,.student-login-grid code{display:block}.student-login-grid span{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase}.student-login-grid code{margin-top:6px;color:var(--navy);font-size:16px;font-weight:900;overflow-wrap:anywhere}.student-login-card .secondary{width:100%}@media(max-width:620px){.student-login-grid{grid-template-columns:1fr}}
 @media print{.student-login-card button{display:none!important}}
+
+
+/* V2.9.0 Student Portal */
+.student-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:22px}.student-summary-grid article{padding:18px;border:1px solid var(--line);border-radius:18px;background:#f7fbfe}.student-summary-grid span,.student-summary-grid strong,.student-summary-grid small{display:block}.student-summary-grid span{font-size:11px;color:var(--muted);font-weight:850;text-transform:uppercase;letter-spacing:.07em}.student-summary-grid strong{margin-top:7px;font-size:18px;color:var(--ink)}.student-summary-grid small{margin-top:5px;color:var(--muted)}@media(max-width:620px){.student-summary-grid{grid-template-columns:1fr}}

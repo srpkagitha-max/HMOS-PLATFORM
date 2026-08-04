@@ -1,3 +1,11 @@
+# HMOS Changelog
+
+## V2.9.0
+- Working Student Login with Student ID and password.
+- First-login password change.
+- Student dashboard with profile, room, fees and joining details.
+- Student session validation foundation.
+
 # HMOS V2.8.2 – Admission Validation Fix
 
 - New executable filenames force Chrome to load the latest admission code.
