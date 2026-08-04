@@ -1,5 +1,15 @@
 # HMOS Changelog
 
+## v2.6.0 — Institute Portal Foundation
+- Working institute login with inactive and subscription-expiry checks.
+- Mandatory first-login password change with strong-password validation.
+- Remember-institute session without storing the password.
+- Premium institute welcome portal with New Admission, Student Login and Admin Login cards.
+- Institute branding/contact/subscription summary available from the access profile.
+- Faster returning portal session and safe logout.
+- Updated development Firestore rule for first-login password change.
+
+
 ## v2.4.1 — Mobile UI Fix
 - Fixed stale CSS loading on GitHub Pages with versioned assets and network-first CSS.
 - Redesigned Institute Manage screen for small phones.

@@ -23,7 +23,11 @@ service cloud.firestore {
     match /instituteAccess/{instituteCode} {
       allow get: if true;
       allow list: if false;
-      allow create, update: if isActiveSuperAdmin();
+      allow create: if isActiveSuperAdmin();
+      allow update: if isActiveSuperAdmin() || (
+        resource.data.status == 'active' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['passwordHash', 'mustChangePassword', 'updatedAt'])
+      );
       allow delete: if false;
     }
 

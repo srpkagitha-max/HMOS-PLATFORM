@@ -1,5 +1,5 @@
-const CACHE = "hmos-v2.5.0";
-const STATIC_ASSETS = ["./", "index.html", "styles.css?v=2.5.0", "manifest.json"];
+const CACHE = "hmos-v2.6.0";
+const STATIC_ASSETS = ["./", "index.html", "styles.css?v=2.6.0", "manifest.json"];
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS)));

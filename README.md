@@ -23,3 +23,7 @@ V2.4.1 Mobile UI Fix
 
 ## Version 2.5
 Institute management actions now use safe, mobile-friendly dialogs for editing, access control, password resets, plan renewals, login sharing, archive and restore.
+
+
+## V2.6 Institute Portal
+Institute login, mandatory first-login password change, remembered non-sensitive portal session, and welcome cards are enabled. The public first-login password update is a development-stage implementation; production must move password verification and changes to a Firebase Cloud Function.

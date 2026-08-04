@@ -122,8 +122,14 @@ export async function createInstitute(input, actorUid) {
     instituteId,
     instituteCode,
     instituteName: record.instituteName,
+    hostelType: record.hostelType,
+    ownerPhone: record.ownerPhone,
+    ownerEmail: record.ownerEmail,
+    city: record.city,
+    address: record.address,
     passwordHash,
     status: "active",
+    subscriptionStatus: "active",
     subscriptionEnd: record.subscriptionEnd,
     mustChangePassword: true,
     createdAt: serverTimestamp(),
@@ -152,6 +158,11 @@ export async function updateInstitute(instituteId, input, actorUid) {
   await updateDoc(ref, updates);
   await updateDoc(doc(db, "instituteAccess", current.instituteCode), {
     instituteName: updates.instituteName,
+    hostelType: updates.hostelType,
+    ownerPhone: updates.ownerPhone,
+    ownerEmail: updates.ownerEmail,
+    city: updates.city,
+    address: updates.address,
     updatedAt: serverTimestamp()
   });
   return { id: instituteId, ...current, ...updates };
@@ -232,4 +243,24 @@ export async function loginInstitute(instituteCode, password) {
     throw Object.assign(new Error("Subscription expired"), { code: "subscription-expired" });
   }
   return { instituteCode: code, ...access };
+}
+
+export async function changeInstitutePassword(instituteCode, currentPassword, newPassword) {
+  const code = normalizeCode(instituteCode);
+  if (!code || !currentPassword || !newPassword) throw Object.assign(new Error("Missing credentials"), { code: "missing-credentials" });
+  if (newPassword.length < 10 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/\d/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+    throw Object.assign(new Error("Weak password"), { code: "weak-institute-password" });
+  }
+  const ref = doc(db, "instituteAccess", code);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) throw Object.assign(new Error("Invalid credentials"), { code: "invalid-institute-credential" });
+  const access = snapshot.data();
+  const currentHash = await sha256(`${code}:${currentPassword}`);
+  if (currentHash !== access.passwordHash) throw Object.assign(new Error("Invalid credentials"), { code: "invalid-institute-credential" });
+  const passwordHash = await sha256(`${code}:${newPassword}`);
+  await updateDoc(ref, { passwordHash, mustChangePassword: false, updatedAt: serverTimestamp() });
+  if (access.instituteId) {
+    await updateDoc(doc(db, "institutes", access.instituteId), { mustChangePassword: false, updatedAt: serverTimestamp() }).catch(() => undefined);
+  }
+  return { instituteCode: code, ...access, passwordHash: undefined, mustChangePassword: false };
 }
