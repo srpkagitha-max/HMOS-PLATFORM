@@ -1,3 +1,12 @@
+# HMOS V3.1.1
+
+- Student Manage actions restored.
+- 6-digit numeric student password reset.
+- Copy/WhatsApp login sharing.
+- Print Student ID Card.
+- Activate/deactivate and archive controls.
+- Forgot-password guidance on Student Login.
+
 # HMOS V3.1.0
 
 - Room and bed management

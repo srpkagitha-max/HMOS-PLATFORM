@@ -1,3 +1,7 @@
+# HMOS V3.1.1 — Student Actions Fix
+
+Upload the versioned files and publish firestore.rules. Student password reset generates a 6-digit temporary password and forces a password change on next login.
+
 # HMOS V3.1.0 – Room & Bed Management
 
 Upload the V3.1 files and publish `firestore.rules`.
