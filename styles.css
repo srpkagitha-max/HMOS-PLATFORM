@@ -161,3 +161,54 @@
   .empty-state strong{font-size:13px!important}.empty-state p{font-size:10px!important}
   footer{font-size:9px!important;padding:6px 10px 18px!important}
 }
+
+/* HMOS V3.5.3 — premium, balanced institute gateway */
+@media (max-width:700px){
+  .shell .hero{
+    padding:20px 18px 42px!important;
+    min-height:0!important;
+  }
+  .shell .brand{gap:13px!important;align-items:center!important}
+  .shell .brand-mark{width:58px!important;height:58px!important;border-radius:17px!important}
+  .shell .brand h1{font-size:27px!important;line-height:1.05!important;letter-spacing:-.035em!important}
+  .shell .brand .tagline{font-size:13px!important;line-height:1.35!important;margin-top:7px!important;max-width:330px!important}
+  .shell .trust-row{margin-top:15px!important;gap:8px!important}
+  .shell .trust-row span{font-size:11px!important;padding:7px 11px!important}
+
+  .gateway-card{
+    margin:-18px 12px 18px!important;
+    padding:22px 18px 20px!important;
+    border-radius:24px!important;
+    box-shadow:0 18px 48px rgba(7,45,86,.18)!important;
+  }
+  .gateway-head{margin-bottom:20px!important}
+  .portal-head.gateway-head{grid-template-columns:54px minmax(0,1fr)!important;gap:12px!important}
+  .gateway-head .portal-logo{width:54px!important;height:54px!important;border-radius:15px!important;font-size:21px!important}
+  .gateway-head .step{font-size:10px!important;letter-spacing:.13em!important}
+  .gateway-head h2{font-size:29px!important;line-height:1.08!important;margin:3px 0 4px!important}
+  .gateway-head p{font-size:12px!important;line-height:1.35!important}
+  .gateway-head .secondary{grid-column:1/-1!important;min-height:44px!important;font-size:13px!important;border-radius:13px!important}
+
+  .gateway-actions{gap:11px!important}
+  .gateway-action{
+    grid-template-columns:minmax(0,1fr) 18px!important;
+    min-height:82px!important;
+    padding:15px 16px!important;
+    border-radius:18px!important;
+    background:linear-gradient(180deg,#fbfdff,#f5f9fd)!important;
+    border:1px solid #d6e2ed!important;
+    box-shadow:0 8px 20px rgba(19,63,103,.06)!important;
+  }
+  .gateway-action>span{display:none!important}
+  .gateway-action strong{font-size:18px!important;line-height:1.15!important}
+  .gateway-action small{font-size:12px!important;line-height:1.3!important;margin-top:5px!important}
+  .gateway-action b{font-size:23px!important;color:#6c8093!important}
+}
+
+@media (max-width:390px){
+  .shell .brand h1{font-size:25px!important}
+  .gateway-card{padding:20px 16px!important}
+  .gateway-action{min-height:78px!important;padding:13px 14px!important}
+  .gateway-action strong{font-size:17px!important}
+  .gateway-action small{font-size:11px!important}
+}
