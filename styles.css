@@ -212,3 +212,71 @@
   .gateway-action strong{font-size:17px!important}
   .gateway-action small{font-size:11px!important}
 }
+
+/* HMOS V3.5.4 — premium readable typography, unchanged compact boxes */
+@media (max-width:700px){
+  /* Admission form: retain the same compact field boxes, improve readability */
+  .admission-card .card-heading h2,
+  .admission-card h2{font-size:27px!important;line-height:1.08!important;letter-spacing:-.025em!important}
+  .admission-card .card-heading p{font-size:13px!important;line-height:1.45!important}
+  .admission-card .step{font-size:10px!important;letter-spacing:.13em!important}
+  .admission-card .field>span{font-size:12px!important;font-weight:750!important;margin-bottom:6px!important}
+  .admission-card .field input,
+  .admission-card .field select,
+  .admission-card .field textarea{font-size:14px!important;line-height:1.35!important;font-weight:500!important}
+  .admission-card .primary{font-size:14px!important;font-weight:800!important}
+  .admission-card .back{font-size:13px!important;font-weight:750!important}
+
+  /* Student portal: same card dimensions, larger consistent typography */
+  .student-dashboard .compact-profile-head h2,
+  .student-home-page .compact-profile-head h2{font-size:27px!important;line-height:1.08!important;letter-spacing:-.025em!important}
+  .student-dashboard .compact-profile-head p,
+  .student-home-page .compact-profile-head p{font-size:13px!important;line-height:1.35!important}
+  .student-dashboard .step,
+  .student-home-page .step{font-size:10px!important;letter-spacing:.13em!important}
+  .student-home-card strong{font-size:15px!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.01em!important}
+  .student-home-card small{font-size:10.5px!important;line-height:1.28!important;color:#667789!important}
+  .student-home-card b{font-size:20px!important}
+  .compact-profile-head .compact-button{font-size:12px!important;font-weight:800!important}
+
+  /* Admin home: preserve two-column grid and box size, enlarge labels uniformly */
+  .admin-home-page .compact-heading h2,
+  .admin-dashboard-home .compact-heading h2,
+  .admin-home-card .compact-heading h2{font-size:27px!important;line-height:1.08!important;letter-spacing:-.025em!important}
+  .admin-home-page .compact-heading p,
+  .admin-dashboard-home .compact-heading p{font-size:13px!important;line-height:1.4!important}
+  .admin-home-action strong,
+  .neat-admin-grid .admin-home-action strong,
+  .admin-home-grid.compact-dashboard .admin-home-action strong{font-size:15px!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.01em!important}
+  .admin-home-action small,
+  .neat-admin-grid .admin-home-action small,
+  .admin-home-grid.compact-dashboard .admin-home-action small{font-size:10.5px!important;line-height:1.28!important;color:#667789!important}
+
+  /* Common premium hierarchy across opened admin modules */
+  .dashboard-card .card-heading h2,
+  .dashboard-card .compact-heading h2,
+  .compact-page .compact-heading h2{font-size:25px!important;line-height:1.1!important;letter-spacing:-.02em!important}
+  .dashboard-card .card-heading p,
+  .dashboard-card .compact-heading p,
+  .compact-page .compact-heading p{font-size:12px!important;line-height:1.4!important}
+  .dashboard-card .section-title h3,
+  .compact-page .section-title h3{font-size:18px!important;line-height:1.15!important}
+  .dashboard-card .section-title p,
+  .compact-page .section-title p{font-size:11px!important;line-height:1.35!important}
+  .dashboard-card .metric-grid span{font-size:10px!important;font-weight:750!important}
+  .dashboard-card .metric-grid small{font-size:9.5px!important}
+  .dashboard-card .primary,
+  .dashboard-card .secondary{font-size:13px!important;font-weight:800!important}
+}
+
+@media (max-width:390px){
+  .admission-card .card-heading h2,
+  .student-dashboard .compact-profile-head h2,
+  .student-home-page .compact-profile-head h2{font-size:25px!important}
+  .student-home-card strong,
+  .admin-home-action strong,
+  .neat-admin-grid .admin-home-action strong{font-size:14px!important}
+  .student-home-card small,
+  .admin-home-action small,
+  .neat-admin-grid .admin-home-action small{font-size:10px!important}
+}

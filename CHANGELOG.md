@@ -1,11 +1,7 @@
-V3.5.1: Institute login now opens Admission Form, Resident Login and Admin Login. Admin cards moved behind Admin Login and redesigned compactly in a balanced 2-column grid.
+# HMOS V3.5.4
 
-## V3.5.2
-Uniform compact UI, text-only cards, no emojis, and compact inner admin/student pages.
-
-## V3.5.3
-- Reduced unused hero space on the institute gateway.
-- Increased institute dashboard title readability.
-- Enlarged gateway cards slightly while keeping all three actions easy to reach.
-- Removed decorative emoji icons from gateway actions.
-- Added balanced premium spacing, borders and shadows for mobile screens.
+- Increased Admission Form heading, label and input text sizes without enlarging the existing field boxes.
+- Increased Student Portal profile and card typography while preserving the 2-column compact layout.
+- Increased Admin Dashboard card titles and subtitles uniformly.
+- Improved typography hierarchy inside Residents, Admissions, Beds, Kitchen, Fees, Entry/Exit, Complaints and PDF pages.
+- Kept the same colors, card dimensions, spacing and emoji-free design from V3.5.3.
