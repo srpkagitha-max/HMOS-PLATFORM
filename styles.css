@@ -90,3 +90,74 @@
 /* V3.5.1 neat institute gateway + compact admin dashboard */
 .gateway-card{padding:22px!important}.gateway-head{margin-bottom:18px}.gateway-actions{display:grid;gap:10px}.gateway-action{display:grid;grid-template-columns:42px minmax(0,1fr) 18px;align-items:center;gap:12px;width:100%;min-height:72px;padding:12px 14px;border:1px solid #d8e3ec;border-radius:16px;background:#f8fbfd;color:#102642;text-align:left}.gateway-action>span{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#e8f3fb;font-size:21px}.gateway-action strong,.gateway-action small{display:block}.gateway-action strong{font-size:16px;line-height:1.2}.gateway-action small{margin-top:3px;font-size:11px;color:#6b7989}.gateway-action b{font-size:24px;font-weight:500;color:#7a8a9a}.gateway-status{margin:14px 0 0!important;padding:10px 12px!important;flex-direction:row!important;align-items:center!important}.compact-admin-home{padding:20px!important}.compact-admin-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.compact-admin-top .back{width:auto;margin:0}.compact-admin-top h2{font-size:24px;margin:4px 0 2px}.compact-admin-top p{font-size:12px;margin:0;color:#687789}.neat-admin-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}.neat-admin-grid .admin-home-action{min-height:92px!important;padding:12px!important;border-radius:16px!important;gap:4px!important;box-shadow:none!important}.neat-admin-grid .admin-home-icon{font-size:21px!important}.neat-admin-grid .admin-home-action strong{font-size:16px!important;line-height:1.15!important}.neat-admin-grid .admin-home-action small{font-size:10.5px!important;line-height:1.25!important}.admin-home-wide{grid-column:auto!important}.compact-heading h2{font-size:26px!important}.compact-heading p{font-size:13px!important}.compact-report-grid{grid-template-columns:1fr 1fr!important;gap:9px!important}.compact-report{min-height:54px!important;padding:10px!important;font-size:12px!important;border-radius:14px!important}.admin-home-grid.compact-dashboard .admin-home-action{min-height:88px!important;padding:12px!important;border-radius:16px!important}.admin-home-grid.compact-dashboard .admin-home-action strong{font-size:15px!important}.admin-home-grid.compact-dashboard .admin-home-action small{font-size:10.5px!important}
 @media(max-width:560px){.gateway-card{padding:18px!important}.portal-head.gateway-head{grid-template-columns:48px minmax(0,1fr)!important;gap:10px}.gateway-head .portal-logo{width:48px;height:48px}.gateway-head h2{font-size:25px}.gateway-head .secondary{grid-column:1/-1;min-height:40px}.compact-admin-top{display:block}.compact-admin-top .back{margin-bottom:10px}.neat-admin-grid{grid-template-columns:1fr 1fr!important}.gateway-status{display:grid!important;grid-template-columns:auto 1fr auto!important}.gateway-status .compact-link{margin:0!important}}
+
+/* HMOS V3.5.2 uniform compact interface — mobile first */
+@media (max-width: 700px) {
+  .hero{padding:24px 18px 64px!important;min-height:auto!important}
+  .brand-mark{width:54px!important;height:54px!important;border-radius:15px!important}
+  .brand h1{font-size:25px!important;line-height:1.05!important}
+  .brand .tagline{font-size:12px!important;line-height:1.4!important;margin-top:8px!important}
+  .trust-row{margin-top:16px!important;gap:7px!important}
+  .trust-row span{font-size:10px!important;padding:6px 9px!important}
+  .card,.compact-page,.dashboard-card,.portal-card,.admission-card{margin:-28px 10px 16px!important;padding:16px!important;border-radius:20px!important}
+  .wide-card{width:auto!important}
+  .back{font-size:12px!important;margin-bottom:12px!important}
+  .step{font-size:9px!important;letter-spacing:.11em!important;margin-bottom:5px!important}
+  .card h2,.compact-heading h2,.card-heading h2,.compact-profile-head h2{font-size:22px!important;line-height:1.1!important;margin:3px 0 5px!important}
+  .card-heading,.compact-heading{margin:6px 0 14px!important}
+  .card-heading p,.compact-heading p,.dashboard-head p,.manage-title p{font-size:11px!important;line-height:1.4!important}
+  .section-title{margin:16px 0 10px!important}
+  .section-title h3,.compact-section h3{font-size:17px!important;margin:0 0 3px!important}
+  .section-title p{font-size:10px!important}
+  .metric-grid,.mini-stat-grid{gap:8px!important;margin:14px 0!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .metric-grid article,.mini-stat-grid article,.dashboard-card .metric-grid article{padding:10px!important;border-radius:13px!important;min-height:72px!important}
+  .metric-grid span,.mini-stat-grid span{font-size:9px!important}
+  .metric-grid strong,.mini-stat-grid strong,.dashboard-card .metric-grid strong{font-size:23px!important;margin:4px 0 1px!important}
+  .metric-grid small{font-size:8.5px!important}
+  .primary,.secondary{min-height:40px!important;border-radius:12px!important;font-size:12px!important}
+  .compact-primary{min-height:38px!important;padding:0 12px!important}
+  .field{margin-bottom:10px!important}
+  .field span{font-size:10px!important;margin-bottom:5px!important}
+  .field input,.field select,.field textarea{min-height:42px!important;border-radius:11px!important;padding:8px 11px!important;font-size:12px!important}
+  .field textarea{min-height:76px!important}
+  .form-grid,.compact-form{gap:0 9px!important}
+  .student-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:12px!important}
+  .student-home-card{min-height:62px!important;padding:9px 10px!important;border-radius:13px!important;gap:6px!important;box-shadow:none!important}
+  .student-home-card div{min-width:0!important}
+  .student-home-card strong{font-size:13px!important;line-height:1.15!important}
+  .student-home-card small{font-size:9px!important;line-height:1.2!important;margin-top:2px!important}
+  .student-home-card b{font-size:18px!important}
+  .compact-profile-head{gap:9px!important;align-items:center!important}
+  .compact-profile-head .portal-logo{width:42px!important;height:42px!important;border-radius:12px!important;font-size:17px!important}
+  .compact-profile-head .compact-button{padding:7px 10px!important;min-height:34px!important;font-size:11px!important}
+  .admin-home-grid,.neat-admin-grid,.admin-home-grid.compact-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .admin-home-action,.neat-admin-grid .admin-home-action,.admin-home-grid.compact-dashboard .admin-home-action{min-height:64px!important;padding:10px!important;border-radius:13px!important;gap:2px!important;justify-content:center!important;box-shadow:none!important}
+  .admin-home-action strong,.neat-admin-grid .admin-home-action strong,.admin-home-grid.compact-dashboard .admin-home-action strong{font-size:13px!important;line-height:1.15!important}
+  .admin-home-action small,.neat-admin-grid .admin-home-action small,.admin-home-grid.compact-dashboard .admin-home-action small{font-size:9px!important;line-height:1.2!important}
+  .admin-home-icon{display:none!important}
+  .admin-home-wide{grid-column:auto!important}
+  .compact-list-row{padding:10px!important;border-radius:12px!important;margin:7px 0!important;gap:7px!important}
+  .compact-list-row strong{font-size:12px!important}
+  .compact-list-row span{font-size:10px!important}
+  .compact-list-row small{font-size:9px!important}
+  .institute-row,.student-admin-row,.fee-student-card{padding:10px!important;border-radius:13px!important}
+  .avatar{width:36px!important;height:36px!important;border-radius:10px!important;font-size:13px!important}
+  .profile-detail-list,.menu-detail-grid{gap:7px!important;margin:12px 0!important}
+  .profile-detail-list article,.menu-detail-grid article{padding:9px!important;border-radius:11px!important}
+  .profile-detail-list span,.menu-detail-grid span{font-size:9px!important}
+  .profile-detail-list strong,.menu-detail-grid strong{font-size:12px!important}
+  .meal-card{padding:10px!important;border-radius:12px!important}
+  .meal-card strong{font-size:12px!important}.meal-card small{font-size:9px!important}
+  .cinema-screen{font-size:12px!important;padding:9px!important;margin:10px 0!important}
+  .cinema-bed-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important}
+  .cinema-bed{min-height:74px!important;border-radius:13px!important;padding:7px 3px!important}
+  .cinema-bed span,.cinema-bed small{font-size:8px!important}.cinema-bed strong{font-size:18px!important}
+  .bed-legend{font-size:9px!important;gap:6px 9px!important}
+  .selected-bed-panel{padding:11px!important;border-radius:13px!important;margin:12px 0!important}
+  .bed-admin-actions{gap:6px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .report-grid,.compact-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .compact-report,.report-grid button{min-height:48px!important;padding:8px!important;font-size:10px!important;border-radius:12px!important}
+  .empty-state,.compact-empty{padding:18px 10px!important;border-radius:13px!important}
+  .empty-state strong{font-size:13px!important}.empty-state p{font-size:10px!important}
+  footer{font-size:9px!important;padding:6px 10px 18px!important}
+}
