@@ -1,5 +1,1 @@
-# V3.5.0
-- Compact mobile screens
-- Student Profile, Fees, Attendance, Entry/Exit, Complaints and Today Menu
-- Admin Complaints card
-- Functional Kitchen menu and movement tracking
+V3.5.1: Institute login now opens Admission Form, Resident Login and Admin Login. Admin cards moved behind Admin Login and redesigned compactly in a balanced 2-column grid.
