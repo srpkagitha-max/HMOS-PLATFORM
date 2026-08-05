@@ -280,3 +280,22 @@
   .admin-home-action small,
   .neat-admin-grid .admin-home-action small{font-size:10px!important}
 }
+
+/* HMOS V3.6.0 — institute branding, fee alerts and premium print */
+.institute-brand{align-items:center;gap:18px}
+.institute-brand h1{font-size:clamp(28px,6vw,46px);line-height:1.05;margin:4px 0 8px}
+.institute-brand-logo,.institute-brand-letter{width:96px;height:96px;border-radius:24px;background:#fff;object-fit:cover;display:grid;place-items:center;font-size:42px;font-weight:900;color:var(--brand-primary);box-shadow:0 12px 30px rgba(0,0,0,.14)}
+.shell[style] .hero{background:linear-gradient(145deg,var(--brand-primary),color-mix(in srgb,var(--brand-primary),#000 16%))}
+.branding-preview{border:3px solid #0b4f8a;border-radius:18px;padding:18px;background:#f7fbff;display:flex;flex-direction:column;gap:5px}
+.branding-preview strong{font-size:22px}.branding-preview span{color:#667789}
+.gateway-letter{display:grid!important;place-items:center;width:54px;height:54px;border-radius:17px;background:#e6f2ff;color:#0b4f8a;font-size:23px!important;font-weight:900}
+.cinema-bed.fee-overdue{background:#fff0f0!important;border-color:#d93636!important;color:#9f1d1d!important;box-shadow:0 0 0 3px rgba(217,54,54,.12)}
+.cinema-bed.fee-overdue small{color:#b42323!important;font-weight:800}
+.button-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.resident-call-card{display:flex;flex-direction:column;gap:7px;padding:16px;border-radius:16px;background:#f4f8fc}.resident-call-card strong{font-size:20px}.resident-call-card span,.resident-call-card p{margin:0;color:#5f7182}
+@media(max-width:700px){.institute-brand-logo,.institute-brand-letter{width:74px;height:74px;border-radius:20px;font-size:34px}.institute-brand h1{font-size:30px}.branding-preview strong{font-size:19px}}
+@media print{
+  body::before{content:attr(data-print-institute) "\A" attr(data-print-address);white-space:pre;display:block;text-align:center;font-size:22px;font-weight:800;padding:0 0 16px;border-bottom:2px solid #111;margin-bottom:18px}
+  .hero,footer,.back,.pwa-install-button,.modal-layer{display:none!important}
+  .card{box-shadow:none!important;border:0!important;margin:0!important;max-width:none!important}
+}

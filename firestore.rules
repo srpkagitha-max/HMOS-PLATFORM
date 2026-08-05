@@ -14,6 +14,7 @@ service cloud.firestore {
     match /fees/{studentId} { allow get, list: if true; allow create, update: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string; allow delete: if isSuperAdmin(); }
     match /payments/{paymentId} { allow get, list: if true; allow create: if request.resource.data.paymentId == paymentId && request.resource.data.studentId is string && request.resource.data.instituteCode is string && request.resource.data.amount is number; allow update: if true; allow delete: if isSuperAdmin(); }
 
+    match /instituteBranding/{code} { allow get: if true; allow list: if false; allow create, update: if request.resource.data.instituteCode == code; allow delete: if isSuperAdmin(); }
     match /pendingAdmissions/{id} { allow get, list, create, update: if true; allow delete: if isSuperAdmin(); }
     match /dailyMenus/{id} { allow get, list, create, update: if true; allow delete: if isSuperAdmin(); }
     match /mealAttendance/{id} { allow get, list, create: if true; allow update, delete: if isSuperAdmin(); }
