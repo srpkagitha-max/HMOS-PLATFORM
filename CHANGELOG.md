@@ -1,3 +1,11 @@
+# HMOS V3.1.0
+
+- Room and bed management
+- Create rooms with automatic beds
+- Vacant/occupied metrics
+- Student bed allotment
+- Vacate bed and update student profile
+
 # HMOS V3.0.0 — Institute Admin & Student Management
 
 - Institute Admin dashboard

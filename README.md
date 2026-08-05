@@ -1,3 +1,7 @@
+# HMOS V3.1.0 – Room & Bed Management
+
+Upload the V3.1 files and publish `firestore.rules`.
+
 # HMOS V3.0.0
 
 Institute Admin and Student Management module. Upload the files and publish firestore.rules.
