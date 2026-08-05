@@ -1,5 +1,7 @@
-# V3.2.6
-
-- Changed `renderFeesManagement()` to `async function renderFeesManagement()`.
-- Updated index.html to load `app-v3.2.6.js`.
-- No Firestore Rules changes required.
+# V3.3.0
+- Total Fees / Amount Paying Now / Balance Amount
+- Floor → Room → visible vacant bed selection
+- Exact amount UPI deep-link
+- Pending payment verification
+- Admin approve/reject
+- Student ID, 6-digit password, fee account and bed allotment on approval

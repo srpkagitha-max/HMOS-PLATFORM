@@ -12,8 +12,8 @@
   <meta name="description" content="Hostel Management Operating System – Multi-Institute Hostel Management Platform" />
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="//www.gstatic.com" />
-  <link rel="manifest" href="/HMOS-PLATFORM/manifest.json?v=3.2.6" />
-  <link rel="stylesheet" href="styles.css?v=3.2.6" />
+  <link rel="manifest" href="/HMOS-PLATFORM/manifest.json?v=3.3.0" />
+  <link rel="stylesheet" href="styles.css?v=3.3.0" />
   <title>Hostel Management Operating System</title>
   <style>
     .boot-screen{min-height:100vh;background:#0f4d86;color:#fff;padding:18vh 8vw 8vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
@@ -50,12 +50,12 @@
     });
   </script>
   <script>
-    // V3.2.6: do not unregister workers or delete caches during every startup.
+    // V3.3.0: do not unregister workers or delete caches during every startup.
     // The versioned module URL below bypasses old cached JavaScript safely.
     window.__HMOS_START_PHASE__ = "loading-main-module";
   </script>
   <script type="module">
-    import("./app-v3.2.6.js?v=3.2.6").catch(function(error){
+    import("./app-v3.3.0.js?v=3.3.0").catch(function(error){
       console.error("HMOS startup failed:", error);
       var status = document.getElementById("boot-status");
       var retry = document.getElementById("boot-retry");
