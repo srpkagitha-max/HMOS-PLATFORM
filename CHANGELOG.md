@@ -1,4 +1,6 @@
-# V3.2.4
-- Fixed startup splash timeout caused before the main app module executed.
-- Added alternate Firebase CDN imports.
-- Removed repeated cache and service-worker cleanup during startup.
+# V3.2.5
+
+- Restored Firebase modular SDK imports to the official `gstatic` ESM URLs.
+- Replaced V3.2.4 module references with V3.2.5.
+- Kept service-worker startup disabled during recovery.
+- Fixed `Unexpected reserved word` startup failure caused by incompatible CDN module files.
