@@ -1,6 +1,5 @@
-# V3.2.5
+# V3.2.6
 
-- Restored Firebase modular SDK imports to the official `gstatic` ESM URLs.
-- Replaced V3.2.4 module references with V3.2.5.
-- Kept service-worker startup disabled during recovery.
-- Fixed `Unexpected reserved word` startup failure caused by incompatible CDN module files.
+- Changed `renderFeesManagement()` to `async function renderFeesManagement()`.
+- Updated index.html to load `app-v3.2.6.js`.
+- No Firestore Rules changes required.
