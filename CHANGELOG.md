@@ -1,3 +1,12 @@
+# HMOS Changelog
+
+## V3.2.2 — App Startup Hotfix
+- Corrected service-worker registration to V3.2.2.
+- Forced a clean cache reset using the V3.2.2 cache key.
+- Updated all active asset references to V3.2.2.
+- Fixed Fees Management modal institute-session reference.
+- Preserved cinema-style bed selection and all previous modules.
+
 # HMOS V3.2.0
 
 - Fees Management dashboard
