@@ -9,17 +9,10 @@ service cloud.firestore {
     match /admissions/{id} { allow create: if request.resource.data.admissionId == id && request.resource.data.studentId is string && request.resource.data.instituteCode is string; allow get: if true; allow list, update, delete: if isSuperAdmin(); }
     match /students/{studentId} { allow create: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string; allow get, list: if true; allow update: if isSuperAdmin() || request.resource.data.instituteCode == resource.data.instituteCode; allow delete: if isSuperAdmin(); }
     match /studentAccess/{studentId} { allow get: if true; allow list: if false; allow create: if request.resource.data.studentId == studentId && request.resource.data.passwordHash is string; allow update: if isSuperAdmin() || (request.resource.data.studentId == resource.data.studentId && request.resource.data.instituteCode == resource.data.instituteCode); allow delete: if isSuperAdmin(); }
-    match /rooms/{roomId} {
-      allow get, list: if true;
-      allow create: if request.resource.data.roomId == roomId && request.resource.data.instituteCode is string && request.resource.data.capacity is int;
-      allow update: if request.resource.data.instituteCode == resource.data.instituteCode;
-      allow delete: if isSuperAdmin();
-    }
-    match /roomAllotments/{studentId} {
-      allow get: if true; allow list: if false;
-      allow create, update: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string;
-      allow delete: if isSuperAdmin();
-    }
+    match /rooms/{roomId} { allow get, list: if true; allow create: if request.resource.data.roomId == roomId && request.resource.data.instituteCode is string && request.resource.data.capacity is int; allow update: if request.resource.data.instituteCode == resource.data.instituteCode; allow delete: if isSuperAdmin(); }
+    match /roomAllotments/{studentId} { allow get: if true; allow list: if false; allow create, update: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string; allow delete: if isSuperAdmin(); }
+    match /fees/{studentId} { allow get, list: if true; allow create, update: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string; allow delete: if isSuperAdmin(); }
+    match /payments/{paymentId} { allow get, list: if true; allow create: if request.resource.data.paymentId == paymentId && request.resource.data.studentId is string && request.resource.data.instituteCode is string && request.resource.data.amount is number; allow update, delete: if isSuperAdmin(); }
     match /{document=**} { allow read, write: if false; }
   }
 }
