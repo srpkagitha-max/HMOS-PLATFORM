@@ -12,7 +12,14 @@ service cloud.firestore {
     match /rooms/{roomId} { allow get, list: if true; allow create: if request.resource.data.roomId == roomId && request.resource.data.instituteCode is string && request.resource.data.capacity is int; allow update: if request.resource.data.instituteCode == resource.data.instituteCode; allow delete: if isSuperAdmin(); }
     match /roomAllotments/{studentId} { allow get: if true; allow list: if false; allow create, update: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string; allow delete: if isSuperAdmin(); }
     match /fees/{studentId} { allow get, list: if true; allow create, update: if request.resource.data.studentId == studentId && request.resource.data.instituteCode is string; allow delete: if isSuperAdmin(); }
-    match /payments/{paymentId} { allow get, list: if true; allow create: if request.resource.data.paymentId == paymentId && request.resource.data.studentId is string && request.resource.data.instituteCode is string && request.resource.data.amount is number; allow update, delete: if isSuperAdmin(); }
+    match /payments/{paymentId} { allow get, list: if true; allow create: if request.resource.data.paymentId == paymentId && request.resource.data.studentId is string && request.resource.data.instituteCode is string && request.resource.data.amount is number; allow update: if true; allow delete: if isSuperAdmin(); }
+
+    match /pendingAdmissions/{id} { allow get, list, create, update: if true; allow delete: if isSuperAdmin(); }
+    match /dailyMenus/{id} { allow get, list, create, update: if true; allow delete: if isSuperAdmin(); }
+    match /mealAttendance/{id} { allow get, list, create: if true; allow update, delete: if isSuperAdmin(); }
+    match /movements/{id} { allow get, list, create, update: if true; allow delete: if isSuperAdmin(); }
+    match /complaints/{id} { allow get, list, create, update: if true; allow delete: if isSuperAdmin(); }
+
     match /{document=**} { allow read, write: if false; }
   }
 }
