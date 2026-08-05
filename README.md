@@ -1,3 +1,10 @@
+# HMOS V3.2.3 Startup Recovery
+
+- Removed startup reload loop.
+- Temporarily disabled service worker registration.
+- Switched Firestore startup to getFirestore().
+- Added visible module-load error reporting.
+
 # HMOS V3.2.2
 
 Startup/cache hotfix for GitHub Pages. Upload the files in this package and publish the included Firestore rules.

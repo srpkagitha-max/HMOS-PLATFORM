@@ -12,8 +12,8 @@
   <meta name="description" content="Hostel Management Operating System – Multi-Institute Hostel Management Platform" />
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="//www.gstatic.com" />
-  <link rel="manifest" href="/HMOS-PLATFORM/manifest.json?v=3.2.2" />
-  <link rel="stylesheet" href="styles.css?v=3.2.2" />
+  <link rel="manifest" href="/HMOS-PLATFORM/manifest.json?v=3.2.3" />
+  <link rel="stylesheet" href="styles.css?v=3.2.3" />
   <title>Hostel Management Operating System</title>
   <style>
     .boot-screen{min-height:100vh;background:#0f4d86;color:#fff;padding:18vh 8vw 8vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
@@ -50,18 +50,30 @@
     });
   </script>
   <script>
-    (function(){
-      const key = "hmos-cache-reset-3.2.2";
-      let needsReset = false;
-      try { needsReset = !localStorage.getItem(key); if (needsReset) localStorage.setItem(key, "1"); } catch { needsReset = true; }
-      if (needsReset) {
-        Promise.all([
-          "caches" in window ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))) : Promise.resolve(),
-          "serviceWorker" in navigator ? navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister()))) : Promise.resolve()
-        ]).finally(() => location.replace(location.pathname + "?v=3.2.2"));
+    // V3.2.3 startup recovery: clear old caches once, without forcing a reload loop.
+    (async function(){
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (error) {
+        console.warn("HMOS cache cleanup warning:", error);
       }
     })();
   </script>
-  <script type="module" src="app-v3.2.2.js"></script>
+  <script type="module">
+    import("./app-v3.2.3.js?v=3.2.3").catch(function(error){
+      console.error("HMOS startup failed:", error);
+      var status = document.getElementById("boot-status");
+      var retry = document.getElementById("boot-retry");
+      if (status) status.textContent = "HMOS startup error: " + (error && error.message ? error.message : "Unknown module error");
+      if (retry) retry.style.display = "inline-block";
+    });
+  </script>
 </body>
 </html>
