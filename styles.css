@@ -71,3 +71,10 @@
 
 /* V3.3 Admission payment & bed booking */
 .fee-box,.bed-booking-box,.upi-box{padding:20px;border:1px solid #d7e2ec;border-radius:22px;background:#f7fbff}.fee-box h3,.bed-booking-box h3,.upi-box h3{margin:0 0 14px}.admission-room-btn{margin:6px}.credential-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* V3.4.0 Institute Admin Home */
+.admin-home-title{margin:28px 0 18px}.admin-home-title h3{font-size:clamp(28px,7vw,42px);margin:6px 0}.admin-home-title p{margin:0;color:#6d7b8d}
+.admin-home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.admin-home-action{min-height:150px;border:1px solid #d8e4ee;border-radius:24px;background:#f7fbfe;padding:20px;text-align:left;color:#102642;display:flex;flex-direction:column;gap:8px;justify-content:center;box-shadow:0 10px 24px rgba(12,58,103,.06)}
+.admin-home-action strong{font-size:24px}.admin-home-action small{font-size:15px;line-height:1.35;color:#6c7a8b}.admin-home-icon{font-size:30px}.admin-home-wide{grid-column:1/-1}.compact-dashboard{margin-top:20px}.report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.report-grid button{min-height:92px}
+@media(max-width:560px){.admin-home-grid{grid-template-columns:1fr 1fr;gap:12px}.admin-home-action{min-height:132px;padding:16px;border-radius:20px}.admin-home-action strong{font-size:20px}.admin-home-action small{font-size:13px}.report-grid{grid-template-columns:1fr}}
