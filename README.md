@@ -1,25 +1,8 @@
-# HMOS V3.2.3 Startup Recovery
+# HMOS V3.2.4 CDN Startup Fix
 
-- Removed startup reload loop.
-- Temporarily disabled service worker registration.
-- Switched Firestore startup to getFirestore().
-- Added visible module-load error reporting.
+This patch fixes the splash-screen startup hang by:
+- switching Firebase browser-module imports from Google gstatic to Cloudflare cdnjs,
+- removing cache/service-worker deletion from every page startup,
+- using versioned V3.2.4 local module filenames.
 
-# HMOS V3.2.2
-
-Startup/cache hotfix for GitHub Pages. Upload the files in this package and publish the included Firestore rules.
-
-Active files:
-- `app-v3.2.2.js`
-- `firebase-service-v3.2.2.js`
-- `service-worker-v3.2.2.js`
-
-# HMOS V3.2.0 – Fees Management
-
-Upload the patch files to the repository root, replace Firestore Rules with `firestore.rules`, publish, and reopen the app.
-
-
-## V3.2.1 Cinema-Style Bed Selector
-- Floor tabs, room cards, movie-ticket bed grid.
-- Bed hide/show, maintenance, reserve and vacant controls.
-- Hidden/maintenance/reserved beds excluded from allotment and vacant metrics.
+Upload every file in this patch to the repository root.
