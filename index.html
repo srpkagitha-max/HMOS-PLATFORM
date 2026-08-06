@@ -50,12 +50,12 @@
     });
   </script>
   <script>
-    // V3.7.1 hotfix: do not unregister workers or delete caches during every startup.
+    // V3.7.2 update: do not unregister workers or delete caches during every startup.
     // The versioned module URL below bypasses old cached JavaScript safely.
     window.__HMOS_START_PHASE__ = "loading-main-module";
   </script>
   <script type="module">
-    import("./app-v3.7.1.js?v=3.7.1").catch(function(error){
+    import("./app-v3.7.2.js?v=3.7.2").catch(function(error){
       console.error("HMOS startup failed:", error);
       var status = document.getElementById("boot-status");
       var retry = document.getElementById("boot-retry");
