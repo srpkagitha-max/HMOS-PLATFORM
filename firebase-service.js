@@ -945,9 +945,9 @@ export async function submitStudentFeePaymentRequest(input){const studentId=norm
 export async function saveAdmissionFeeSettings(input){
   const instituteCode=normalizeCode(input.instituteCode);
   if(!instituteCode)throw Object.assign(new Error("Institute code missing"),{code:"institute-session-missing"});
-  const data={instituteCode,instituteId:cleanText(input.instituteId),upiId:cleanText(input.upiId),defaultTotalFees:Number(input.defaultTotalFees||0),shareInstituteId:cleanText(input.shareInstituteId)||instituteCode,shareInstitutePassword:String(input.shareInstitutePassword||""),updatedAt:serverTimestamp()};
+  const data={instituteCode,instituteId:cleanText(input.instituteId),payeeName:cleanText(input.payeeName),upiId:cleanText(input.upiId),paymentContact:cleanText(input.paymentContact).replace(/\D/g,""),paymentQrDataUrl:String(input.paymentQrDataUrl||""),defaultTotalFees:Number(input.defaultTotalFees||0),shareInstituteId:cleanText(input.shareInstituteId)||instituteCode,shareInstitutePassword:String(input.shareInstitutePassword||""),updatedAt:serverTimestamp()};
   await setDoc(doc(db,"instituteBranding",instituteCode),data,{merge:true});
-  await setDoc(doc(db,"instituteAccess",instituteCode),{upiId:data.upiId,defaultTotalFees:data.defaultTotalFees,shareInstituteId:data.shareInstituteId,shareInstitutePassword:data.shareInstitutePassword,updatedAt:serverTimestamp()},{merge:true});
+  await setDoc(doc(db,"instituteAccess",instituteCode),{payeeName:data.payeeName,upiId:data.upiId,paymentContact:data.paymentContact,paymentQrDataUrl:data.paymentQrDataUrl,defaultTotalFees:data.defaultTotalFees,shareInstituteId:data.shareInstituteId,shareInstitutePassword:data.shareInstitutePassword,updatedAt:serverTimestamp()},{merge:true});
   return {...data,updatedAt:new Date()};
 }
 
