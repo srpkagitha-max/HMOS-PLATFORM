@@ -18,3 +18,4 @@ Deploy the Firestore indexes before large-scale testing. Existing data remains c
 - Applicant status search using phone number.
 - Approved applicant can print admission confirmation and payment receipt.
 - Institute Admin Login defaults to admin / 12345 and can be changed under Settings.
+Deployment Retry 2026-08-06
