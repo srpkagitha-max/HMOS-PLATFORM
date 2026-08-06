@@ -8,3 +8,7 @@ This release keeps the compact card and field layout from V3.5.3 while improving
 - Admin module pages
 
 The boxes remain compact and uniform. Headings, labels, card titles and supporting text are slightly larger for easier mobile use and a more premium visual hierarchy.
+
+
+## V3.7.0
+Approvals, notifications, audit logs, recycle bin, backup snapshots and duplicate-admission protection foundation.

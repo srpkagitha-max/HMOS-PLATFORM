@@ -299,3 +299,11 @@
   .hero,footer,.back,.pwa-install-button,.modal-layer{display:none!important}
   .card{box-shadow:none!important;border:0!important;margin:0!important;max-width:none!important}
 }
+
+
+/* V3.7 approvals, notifications and data safety */
+.live-badge{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:#b42318;color:#fff;font-size:12px;font-weight:800;margin-left:6px}
+.approval-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.approval-summary article{border:1px solid #dbe5ef;border-radius:14px;padding:12px;background:#f8fbfe}.approval-summary span{display:block;font-size:12px;color:#617286}.approval-summary strong{font-size:22px;color:#0b3b73}
+.approval-row,.audit-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #dbe5ef;border-radius:14px;padding:13px;margin:9px 0;background:#fff}.approval-row>div,.audit-row>div{display:grid;gap:3px}.approval-row span,.approval-row small,.audit-row span,.audit-row small{font-size:12px;color:#63758a}.approval-actions{display:flex;gap:7px;flex-wrap:wrap}
+.notification-row{width:100%;display:grid;text-align:left;gap:4px;border:1px solid #dbe5ef;border-radius:14px;padding:13px;margin:9px 0;background:#fff;color:#17324d}.notification-row.unread{border-color:#1677c8;background:#eef7ff;box-shadow:inset 4px 0 0 #1677c8}.notification-row span{font-size:13px;color:#50677d}.notification-row small{font-size:11px;color:#74879a}
+@media(min-width:700px){.approval-summary{grid-template-columns:repeat(5,minmax(0,1fr))}}
