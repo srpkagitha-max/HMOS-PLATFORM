@@ -1,4 +1,29 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "students",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "instituteCode", "order": "ASCENDING"},
+        {"fieldPath": "studentPhone", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "students",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "instituteCode", "order": "ASCENDING"},
+        {"fieldPath": "parentPhone", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "instituteCode", "order": "ASCENDING"},
+        {"fieldPath": "referenceKey", "order": "ASCENDING"}
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

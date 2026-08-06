@@ -22,7 +22,10 @@ import {
   getDocs,
   serverTimestamp,
   Timestamp,
-  writeBatch
+  writeBatch,
+  runTransaction,
+  startAfter,
+  documentId
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -33,6 +36,8 @@ const persistenceReady = setPersistence(auth, browserLocalPersistence).catch(() 
 
 const normalizeCode = value => String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 const cleanText = value => String(value || "").trim();
+const DEFAULT_PAGE_SIZE = 25;
+const safePageSize = value => Math.min(100, Math.max(10, Number(value || DEFAULT_PAGE_SIZE)));
 
 async function sha256(value) {
   const bytes = new TextEncoder().encode(value);
@@ -555,6 +560,34 @@ export async function validateStudentSession(studentIdValue) {
 }
 
 
+// V4 Phase 2 — cursor pagination and duplicate protection
+export async function listInstituteStudentsPage(instituteCodeValue, { pageSize = DEFAULT_PAGE_SIZE, cursor = null } = {}) {
+  const instituteCode = normalizeCode(instituteCodeValue);
+  if (!instituteCode) throw Object.assign(new Error("Institute code missing"), { code: "institute-session-missing" });
+  const constraints = [where("instituteCode", "==", instituteCode), orderBy(documentId()), limit(safePageSize(pageSize))];
+  if (cursor) constraints.splice(2, 0, startAfter(cursor));
+  const snap = await withTimeout(getDocs(query(collection(db, "students"), ...constraints)), 12000, "student-list-timeout");
+  const items = snap.docs.map(item => ({ id: item.id, ...item.data() })).filter(item => !item.isDeleted);
+  return { items, nextCursor: snap.docs.at(-1) || null, hasMore: snap.docs.length === safePageSize(pageSize) };
+}
+
+export async function checkDuplicateAdmission({ instituteCode: codeValue, studentPhone, parentPhone, studentName, dateOfBirth }) {
+  const instituteCode = normalizeCode(codeValue);
+  const normalizedStudentPhone = cleanText(studentPhone).replace(/\D/g, "");
+  const normalizedParentPhone = cleanText(parentPhone).replace(/\D/g, "");
+  const nameKey = cleanText(studentName).toLowerCase();
+  if (!instituteCode) return null;
+  const checks = [];
+  if (normalizedStudentPhone) checks.push(query(collection(db, "students"), where("instituteCode", "==", instituteCode), where("studentPhone", "==", normalizedStudentPhone), limit(1)));
+  if (normalizedParentPhone && nameKey) checks.push(query(collection(db, "students"), where("instituteCode", "==", instituteCode), where("parentPhone", "==", normalizedParentPhone), limit(10)));
+  for (const q of checks) {
+    const snap = await withTimeout(getDocs(q), 9000, "duplicate-check-timeout");
+    const match = snap.docs.map(d => ({ id: d.id, ...d.data() })).find(r => !r.isDeleted && (!nameKey || cleanText(r.studentName).toLowerCase() === nameKey) && (!dateOfBirth || r.dateOfBirth === dateOfBirth));
+    if (match) return match;
+  }
+  return null;
+}
+
 // V3.0 Institute Admin — Student Management
 export async function listInstituteStudents(instituteCodeValue) {
   const instituteCode = normalizeCode(instituteCodeValue);
@@ -689,28 +722,26 @@ export async function allotStudentBed({ studentIdValue, roomIdValue, bedNumberVa
   const bedNumber = cleanText(bedNumberValue);
   const instituteCode = normalizeCode(instituteCodeValue);
   if (!studentId || !roomId || !bedNumber || !instituteCode) throw Object.assign(new Error("Allotment details missing"), { code: "allotment-details-missing" });
-  const studentRef = doc(db, "students", studentId), roomRef = doc(db, "rooms", roomId);
-  const [studentSnap, roomSnap] = await Promise.all([withTimeout(getDoc(studentRef),9000,"student-read-timeout"),withTimeout(getDoc(roomRef),9000,"room-read-timeout")]);
-  if (!studentSnap.exists() || normalizeCode(studentSnap.data().instituteCode)!==instituteCode) throw Object.assign(new Error("Student not found"),{code:"student-not-found"});
-  if (!roomSnap.exists() || normalizeCode(roomSnap.data().instituteCode)!==instituteCode) throw Object.assign(new Error("Room not found"),{code:"room-not-found"});
-  const room = roomSnap.data();
-  const beds = Array.isArray(room.beds) ? room.beds.map(b=>({...b})) : [];
-  const target = beds.find(b=>String(b.bedNumber)===bedNumber);
-  if (!target) throw Object.assign(new Error("Bed not found"),{code:"bed-not-found"});
-  if (target.status === "occupied" && target.studentId !== studentId) throw Object.assign(new Error("Bed occupied"),{code:"bed-occupied"});
-  if (target.isVisible === false || ["hidden","maintenance","reserved"].includes(target.status)) throw Object.assign(new Error("Bed is unavailable"),{code:"bed-unavailable"});
-  // release previous bed in same room data set if reassigning there
-  beds.forEach(b=>{ if (b.studentId===studentId && b.bedNumber!==bedNumber) Object.assign(b,{status:"vacant",studentId:"",studentName:""}); });
-  target.status="occupied"; target.studentId=studentId; target.studentName=cleanText(studentSnap.data().studentName);
-  const occupiedBeds=beds.filter(b=>b.status==="occupied").length;
-  const batch=writeBatch(db);
-  batch.update(roomRef,{beds,occupiedBeds,updatedAt:serverTimestamp()});
-  batch.update(studentRef,{roomId,roomNumber:room.roomNumber,building:room.building,floor:room.floor,bedNumber,roomStatus:"allotted",updatedAt:serverTimestamp()});
-  batch.set(doc(db,"roomAllotments",studentId),{studentId,instituteCode,roomId,roomNumber:room.roomNumber,bedNumber,status:"active",updatedAt:serverTimestamp()},{merge:true});
-  await withTimeout(batch.commit(),12000,"bed-allotment-timeout");
-  return { roomId, roomNumber:room.roomNumber, bedNumber };
+  return withTimeout(runTransaction(db, async tx => {
+    const studentRef = doc(db, "students", studentId);
+    const roomRef = doc(db, "rooms", roomId);
+    const [studentSnap, roomSnap] = await Promise.all([tx.get(studentRef), tx.get(roomRef)]);
+    if (!studentSnap.exists() || normalizeCode(studentSnap.data().instituteCode) !== instituteCode) throw Object.assign(new Error("Student not found"), { code: "student-not-found" });
+    if (!roomSnap.exists() || normalizeCode(roomSnap.data().instituteCode) !== instituteCode) throw Object.assign(new Error("Room not found"), { code: "room-not-found" });
+    const room = roomSnap.data();
+    const beds = Array.isArray(room.beds) ? room.beds.map(b => ({ ...b })) : [];
+    const target = beds.find(b => String(b.bedNumber) === bedNumber);
+    if (!target) throw Object.assign(new Error("Bed not found"), { code: "bed-not-found" });
+    if (target.status !== "vacant" || target.isVisible === false) throw Object.assign(new Error("Bed unavailable"), { code: "bed-unavailable" });
+    if (studentSnap.data().roomId && studentSnap.data().roomId !== roomId) throw Object.assign(new Error("Vacate current bed before transfer"), { code: "existing-bed-allotment" });
+    target.status = "occupied"; target.studentId = studentId; target.studentName = cleanText(studentSnap.data().studentName);
+    const occupiedBeds = beds.filter(b => b.status === "occupied").length;
+    tx.update(roomRef, { beds, occupiedBeds, updatedAt: serverTimestamp() });
+    tx.update(studentRef, { roomId, roomNumber: room.roomNumber, building: room.building, floor: room.floor, bedNumber, roomStatus: "allotted", updatedAt: serverTimestamp() });
+    tx.set(doc(db, "roomAllotments", studentId), { studentId, instituteCode, roomId, roomNumber: room.roomNumber, bedNumber, status: "active", updatedAt: serverTimestamp() }, { merge: true });
+    return { roomId, roomNumber: room.roomNumber, bedNumber };
+  }), 15000, "bed-allotment-timeout");
 }
-
 
 export async function setBedDisplayStatus({ roomIdValue, bedNumberValue, action, instituteCodeValue }) {
   const roomId=cleanText(roomIdValue), bedNumber=cleanText(bedNumberValue), instituteCode=normalizeCode(instituteCodeValue);
@@ -768,19 +799,26 @@ export async function saveStudentFeePlan({studentId,instituteCode,totalFee,dueDa
 export async function recordStudentFeePayment({studentId,instituteCode,amount,mode,reference}){
   studentId=normalizeCode(studentId);instituteCode=normalizeCode(instituteCode);amount=Number(amount||0);
   if(!studentId||!instituteCode||amount<=0) throw Object.assign(new Error("Invalid payment"),{code:"invalid-payment"});
-  const feeRef=doc(db,"fees",studentId), feeSnap=await withTimeout(getDoc(feeRef),9000,"fee-read-timeout");
-  if(!feeSnap.exists()) throw Object.assign(new Error("Set fee plan first"),{code:"fee-plan-missing"});
-  const fee=feeSnap.data(), oldBalance=Number(fee.balanceAmount||0);
-  if(amount>oldBalance) throw Object.assign(new Error("Payment exceeds balance"),{code:"payment-exceeds-balance"});
-  const paidAmount=Number(fee.paidAmount||0)+amount,balanceAmount=Math.max(0,Number(fee.totalFee||0)-paidAmount);
+  const referenceKey=cleanText(reference).toUpperCase();
+  if(referenceKey){
+    const duplicate=await getDocs(query(collection(db,"payments"),where("instituteCode","==",instituteCode),where("referenceKey","==",referenceKey),limit(1)));
+    if(!duplicate.empty) throw Object.assign(new Error("Duplicate payment reference"),{code:"duplicate-payment-reference"});
+  }
   const paymentRef=doc(collection(db,"payments"));
   const receiptNo=`R${new Date().toISOString().slice(0,10).replaceAll("-","")}-${paymentRef.id.slice(0,6).toUpperCase()}`;
-  const batch=writeBatch(db);
-  batch.update(feeRef,{paidAmount,balanceAmount,status:balanceAmount>0?"due":"paid",updatedAt:serverTimestamp()});
-  batch.set(paymentRef,{paymentId:paymentRef.id,receiptNo,studentId,instituteCode,amount,mode:cleanText(mode)||"Cash",reference:cleanText(reference),paidAt:serverTimestamp(),createdAt:serverTimestamp()});
-  batch.update(doc(db,"students",studentId),{feePaid:paidAmount,feeBalance:balanceAmount,feesStatus:balanceAmount>0?"due":"paid",updatedAt:serverTimestamp()});
-  await withTimeout(batch.commit(),12000,"payment-save-timeout");
-  return {paymentId:paymentRef.id,receiptNo,amount,mode:cleanText(mode)||"Cash",balanceAmount};
+  return withTimeout(runTransaction(db,async tx=>{
+    const feeRef=doc(db,"fees",studentId),studentRef=doc(db,"students",studentId);
+    const [feeSnap,studentSnap]=await Promise.all([tx.get(feeRef),tx.get(studentRef)]);
+    if(!feeSnap.exists()) throw Object.assign(new Error("Set fee plan first"),{code:"fee-plan-missing"});
+    if(!studentSnap.exists()||normalizeCode(studentSnap.data().instituteCode)!==instituteCode) throw Object.assign(new Error("Student not found"),{code:"student-not-found"});
+    const fee=feeSnap.data(),oldBalance=Number(fee.balanceAmount||0);
+    if(amount>oldBalance) throw Object.assign(new Error("Payment exceeds balance"),{code:"payment-exceeds-balance"});
+    const paidAmount=Number(fee.paidAmount||0)+amount,balanceAmount=Math.max(0,Number(fee.totalFee||0)-paidAmount);
+    tx.update(feeRef,{paidAmount,balanceAmount,status:balanceAmount>0?"due":"paid",updatedAt:serverTimestamp()});
+    tx.set(paymentRef,{paymentId:paymentRef.id,receiptNo,studentId,instituteCode,amount,mode:cleanText(mode)||"Cash",reference:cleanText(reference),referenceKey,paidAt:serverTimestamp(),createdAt:serverTimestamp()});
+    tx.update(studentRef,{feePaid:paidAmount,feeBalance:balanceAmount,feesStatus:balanceAmount>0?"due":"paid",updatedAt:serverTimestamp()});
+    return {paymentId:paymentRef.id,receiptNo,amount,mode:cleanText(mode)||"Cash",balanceAmount};
+  }),15000,"payment-save-timeout");
 }
 export async function listStudentPayments(studentIdValue){
   const studentId=normalizeCode(studentIdValue);
