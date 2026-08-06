@@ -11,3 +11,10 @@ Phase 2 adds cursor pagination, atomic transactions and duplicate protection on 
 
 ## Important
 Deploy the Firestore indexes before large-scale testing. Existing data remains compatible.
+
+
+## V4.1 Smart Admission & Admin Access
+- Premium WhatsApp admission invitation with institute details and session password.
+- Applicant status search using phone number.
+- Approved applicant can print admission confirmation and payment receipt.
+- Institute Admin Login defaults to admin / 12345 and can be changed under Settings.

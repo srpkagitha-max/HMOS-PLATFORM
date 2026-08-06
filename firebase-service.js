@@ -38,6 +38,20 @@ const normalizeCode = value => String(value || "").trim().toUpperCase().replace(
 const cleanText = value => String(value || "").trim();
 const DEFAULT_PAGE_SIZE = 25;
 const safePageSize = value => Math.min(100, Math.max(10, Number(value || DEFAULT_PAGE_SIZE)));
+const RETRYABLE_CODES = new Set(["unavailable", "deadline-exceeded", "resource-exhausted", "network-request-failed"]);
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function withRetry(operation, { attempts = 3, baseDelay = 350 } = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try { return await operation(); } catch (error) {
+      lastError = error;
+      const code = String(error?.code || "").replace("firestore/", "");
+      if (!RETRYABLE_CODES.has(code) || attempt === attempts) throw error;
+      await sleep(baseDelay * (2 ** (attempt - 1)) + Math.floor(Math.random() * 150));
+    }
+  }
+  throw lastError;
+}
 
 async function sha256(value) {
   const bytes = new TextEncoder().encode(value);
@@ -340,7 +354,7 @@ export async function renewSubscription(instituteId, months, actorUid) {
 export async function loginInstitute(instituteCode, password) {
   const code = normalizeCode(instituteCode);
   if (!code || !password) throw Object.assign(new Error("Missing credentials"), { code: "missing-credentials" });
-  const snapshot = await withTimeout(getDoc(doc(db, "instituteAccess", code)), 9000, "institute-login-timeout");
+  const snapshot = await withRetry(() => withTimeout(getDoc(doc(db, "instituteAccess", code)), 9000, "institute-login-timeout"));
   if (!snapshot.exists()) throw Object.assign(new Error("Invalid credentials"), { code: "invalid-institute-credential" });
   const access = snapshot.data();
   const passwordHash = await sha256(`${code}:${password}`);
@@ -356,7 +370,7 @@ export async function loginInstitute(instituteCode, password) {
 export async function validateInstituteSession(instituteCode) {
   const code = normalizeCode(instituteCode);
   if (!code) throw Object.assign(new Error("Missing institute code"), { code: "missing-credentials" });
-  const snapshot = await withTimeout(getDoc(doc(db, "instituteAccess", code)), 9000, "institute-session-timeout");
+  const snapshot = await withRetry(() => withTimeout(getDoc(doc(db, "instituteAccess", code)), 9000, "institute-session-timeout"));
   if (!snapshot.exists()) throw Object.assign(new Error("Institute access record not found"), { code: "invalid-institute-session" });
   const access = snapshot.data();
   if (access.status !== "active") throw Object.assign(new Error("Institute inactive"), { code: "institute-inactive" });
@@ -877,17 +891,18 @@ export async function approvePendingAdmission(applicationId,instituteSession){
   bed.status="occupied"; bed.studentId=studentId; bed.studentName=a.studentName; delete bed.pendingAdmissionId;
   const common={...a,studentId,admissionId:`AD-${applicationId}`,status:"active",accountStatus:"active",roomStatus:"allotted",feesStatus:a.balanceAmount>0?"due":"paid",feeTotal:a.totalFees,feePaid:a.amountPayingNow,feeBalance:a.balanceAmount,approvedAt:serverTimestamp(),updatedAt:serverTimestamp()};
   const paymentRef=doc(collection(db,"payments"));
+  const receiptNo=`R${new Date().toISOString().slice(0,10).replaceAll("-","")}-${paymentRef.id.slice(0,6).toUpperCase()}`;
   const batch=writeBatch(db);
   batch.set(doc(db,"admissions",common.admissionId),{...common,studentAccountCreated:true,createdAt:serverTimestamp()});
   batch.set(doc(db,"students",studentId),common);
   batch.set(doc(db,"studentAccess",studentId),{studentId,instituteId:a.instituteId,instituteCode:a.instituteCode,studentName:a.studentName,passwordHash,mustChangePassword:true,accountStatus:"active",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
   batch.set(doc(db,"fees",studentId),{studentId,instituteCode:a.instituteCode,totalFee:a.totalFees,paidAmount:a.amountPayingNow,balanceAmount:a.balanceAmount,status:a.balanceAmount>0?"due":"paid",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-  batch.set(paymentRef,{paymentId:paymentRef.id,receiptNo:`R${Date.now()}`,studentId,instituteCode:a.instituteCode,amount:a.amountPayingNow,mode:"UPI",reference:a.upiTransactionId,paidAt:serverTimestamp(),createdAt:serverTimestamp()});
+  batch.set(paymentRef,{paymentId:paymentRef.id,receiptNo,studentId,instituteCode:a.instituteCode,amount:a.amountPayingNow,mode:"UPI",reference:a.upiTransactionId,paidAt:serverTimestamp(),createdAt:serverTimestamp()});
   batch.update(roomRef,{beds,occupiedBeds:beds.filter(b=>b.status==="occupied").length,updatedAt:serverTimestamp()});
-  batch.update(ref,{status:"approved",studentId,approvedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+  batch.update(ref,{status:"approved",studentId,temporaryPassword:password,receiptNo,approvedAt:serverTimestamp(),updatedAt:serverTimestamp()});
   batch.update(doc(db,"institutes",a.instituteId),{currentStudents:Number(instituteSession.currentStudents||0)+1,updatedAt:serverTimestamp()});
   await withTimeout(batch.commit(),15000,"approval-timeout");
-  return {...common,temporaryPassword:password};
+  return {...common,temporaryPassword:password,receiptNo};
 }
 
 export async function rejectPendingAdmission(applicationId,reason="Payment not verified") {
@@ -970,3 +985,49 @@ export async function restoreDeletedRecord(item){const ref=doc(db,item.collectio
 export async function createBackupSnapshot(instituteCodeValue){const code=normalizeCode(instituteCodeValue);const names=["students","pendingAdmissions","rooms","fees","payments","dailyMenus","mealAttendance","movements","complaints","approvalRequests","notifications","auditLogs"];const counts={};for(const name of names){const q=query(collection(db,name),where("instituteCode","==",code),limit(5000));const snap=await getDocs(q);counts[name]=snap.size;}const id=`${code}-${new Date().toISOString().slice(0,10)}`;const data={id,instituteCode:code,backupDate:new Date().toISOString().slice(0,10),recordCounts:counts,status:"snapshot_complete",note:"Metadata snapshot created. Full Firestore export requires a scheduled Cloud Function.",createdAt:serverTimestamp()};await setDoc(doc(db,"backupJobs",id),data,{merge:true});await createAuditLog({instituteCode:code,actorType:"admin",action:"backup_snapshot",entityType:"backupJobs",entityId:id,summary:"Daily backup metadata snapshot created"});return data;}
 export async function listBackupSnapshots(instituteCodeValue){const code=normalizeCode(instituteCodeValue),q=query(collection(db,"backupJobs"),where("instituteCode","==",code),limit(100)),snap=await getDocs(q);return snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.backupDate||"").localeCompare(String(a.backupDate||"")));}
 export async function findDuplicateAdmissions(input){const code=normalizeCode(input.instituteCode),phone=cleanText(input.studentPhone).replace(/\D/g,""),parent=cleanText(input.parentPhone).replace(/\D/g,""),name=cleanText(input.studentName).toLowerCase(),dob=cleanText(input.dateOfBirth),aadhaar=cleanText(input.aadhaarLast4);const q=query(collection(db,"students"),where("instituteCode","==",code),limit(1000));const snap=await getDocs(q);return snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.isDeleted&&((phone&&cleanText(x.studentPhone)===phone)||(name&&parent&&cleanText(x.studentName).toLowerCase()===name&&cleanText(x.parentPhone)===parent)||(dob&&aadhaar&&cleanText(x.dateOfBirth)===dob&&cleanText(x.aadhaarLast4)===aadhaar)));}
+
+
+export async function getSystemHealth() {
+  const startedAt = performance.now();
+  const online = typeof navigator === "undefined" ? true : navigator.onLine;
+  try {
+    await withRetry(() => withTimeout(getDoc(doc(db, "systemHealth", "ping")), 5000, "health-timeout"), { attempts: 2, baseDelay: 250 });
+    return { ok: true, online, latencyMs: Math.round(performance.now() - startedAt), checkedAt: new Date().toISOString() };
+  } catch (error) {
+    if (error?.code === "permission-denied" || error?.code === "not-found") {
+      return { ok: true, online, latencyMs: Math.round(performance.now() - startedAt), checkedAt: new Date().toISOString(), note: "Firebase reachable" };
+    }
+    return { ok: false, online, latencyMs: Math.round(performance.now() - startedAt), checkedAt: new Date().toISOString(), code: error?.code || "health-check-failed" };
+  }
+}
+
+
+// V4.1 Institute Admin Login and Admission Status
+export async function loginInstituteAdmin(instituteCodeValue, adminIdValue, passwordValue) {
+  const instituteCode=normalizeCode(instituteCodeValue), adminId=cleanText(adminIdValue).toLowerCase(), password=String(passwordValue||"");
+  if(!instituteCode||!adminId||!password) throw Object.assign(new Error("Missing admin credentials"),{code:"missing-admin-credentials"});
+  const snap=await withTimeout(getDoc(doc(db,"instituteAccess",instituteCode)),9000,"admin-login-timeout");
+  if(!snap.exists()) throw Object.assign(new Error("Institute not found"),{code:"institute-not-found"});
+  const data=snap.data();
+  if(!data.adminPasswordHash){if(adminId==="admin"&&password==="12345")return {adminId:"admin",isDefault:true};throw Object.assign(new Error("Invalid admin credentials"),{code:"invalid-admin-credential"});}
+  const hash=await sha256(`${instituteCode}:admin:${adminId}:${password}`);
+  if(adminId!==String(data.adminId||"").toLowerCase()||hash!==data.adminPasswordHash)throw Object.assign(new Error("Invalid admin credentials"),{code:"invalid-admin-credential"});
+  return {adminId:data.adminId,isDefault:false};
+}
+
+export async function changeInstituteAdminCredentials(instituteCodeValue, adminIdValue, passwordValue){
+ const instituteCode=normalizeCode(instituteCodeValue),adminId=cleanText(adminIdValue).toLowerCase(),password=String(passwordValue||"");
+ if(!instituteCode||!adminId||password.length<5)throw Object.assign(new Error("Invalid admin credentials"),{code:"invalid-admin-credentials"});
+ const adminPasswordHash=await sha256(`${instituteCode}:admin:${adminId}:${password}`);
+ await withTimeout(updateDoc(doc(db,"instituteAccess",instituteCode),{adminId,adminPasswordHash,adminUpdatedAt:serverTimestamp(),updatedAt:serverTimestamp()}),12000,"admin-credentials-timeout");
+ return {adminId};
+}
+
+export async function checkAdmissionStatus(instituteCodeValue, phoneValue){
+ const instituteCode=normalizeCode(instituteCodeValue),phone=cleanText(phoneValue).replace(/\D/g,"");
+ if(!instituteCode||!/^\d{10}$/.test(phone))throw Object.assign(new Error("Invalid phone"),{code:"invalid-phone"});
+ const q=query(collection(db,"pendingAdmissions"),where("studentPhone","==",phone),limit(20));
+ const snap=await withTimeout(getDocs(q),12000,"admission-status-timeout");
+ const rows=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>normalizeCode(x.instituteCode)===instituteCode).sort((a,b)=>(b.updatedAt?.seconds||b.createdAt?.seconds||0)-(a.updatedAt?.seconds||a.createdAt?.seconds||0));
+ return rows[0]||null;
+}
