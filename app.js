@@ -8,11 +8,11 @@ import {
   submitComplaint, listStudentComplaints, listInstituteComplaints, updateComplaintStatus,
   submitStudentFeePaymentRequest, getInstituteBranding, saveInstituteBranding, saveAdmissionFeeSettings,
   createApprovalRequest, listApprovalRequests, decideApprovalRequest, createNotification, listNotifications, markNotificationRead, createAuditLog, listAuditLogs, softDeleteRecord, listRecycleBin, restoreDeletedRecord, createBackupSnapshot, listBackupSnapshots, findDuplicateAdmissions,
-  loginInstituteAdmin, changeInstituteAdminCredentials, checkAdmissionStatus, getSystemHealth
-} from "./firebase-service.js?v=4.3.0";
+  loginInstituteAdmin, changeInstituteAdminCredentials, checkAdmissionStatus, getSystemHealth, getInstituteLiveMetrics
+} from "./firebase-service.js?v=4.4.0";
 
 const app = document.querySelector("#app");
-const HMOS_VERSION = "4.3.0";
+const HMOS_VERSION = "4.4.0";
 window.__HMOS_VERSION__ = HMOS_VERSION;
 
 const activeOperations = new Set();
@@ -201,6 +201,18 @@ function renderInstituteAdminHome(){
   if(!i){state.screen="institute";return render();}
   app.innerHTML=shell(`<section class="card portal-card wide-card compact-admin-home">
     <div class="compact-admin-top"><button id="admin-home-back" class="back" type="button">← Institute Portal</button><div><span class="step success-step">Admin Dashboard</span><h2>Institute Home</h2><p>${esc(i.instituteName)} · ${esc(i.instituteCode)}</p></div></div>
+    <section class="live-ops-panel" aria-live="polite">
+      <div class="live-ops-head"><div><span class="step">Live operations</span><h3>Today at a Glance</h3></div><button id="live-metrics-refresh" class="secondary compact-button" type="button">Refresh</button></div>
+      <div id="live-metrics-grid" class="live-metrics-grid">
+        <article><span>Residents</span><strong>—</strong><small>Active</small></article>
+        <article><span>Pending Admissions</span><strong>—</strong><small>Needs review</small></article>
+        <article><span>Outside</span><strong>—</strong><small>Not returned</small></article>
+        <article><span>Vacant Beds</span><strong>—</strong><small>Ready to allot</small></article>
+        <article><span>Fee Due Today</span><strong>—</strong><small>Accounts</small></article>
+        <article><span>Open Complaints</span><strong>—</strong><small>Needs action</small></article>
+      </div>
+      <p id="live-metrics-note" class="live-metrics-note">Loading live data…</p>
+    </section>
     <div class="admin-home-grid neat-admin-grid">
       <button id="residents-card" class="admin-home-action"><strong>Residents</strong><small>Profiles & search</small></button>
       <button id="admissions-card" class="admin-home-action"><strong>Admissions</strong><small>Forms & approvals</small></button>
@@ -233,6 +245,19 @@ function renderInstituteAdminHome(){
   document.querySelector("#recycle-card").onclick=()=>{state.screen="recycle-bin";render();};
   document.querySelector("#backup-card").onclick=()=>{state.screen="backup-restore";render();};
   document.querySelector("#system-health-card").onclick=()=>{state.screen="system-health";render();};
+  const paintLiveMetrics = async () => {
+    const grid=document.querySelector("#live-metrics-grid"), note=document.querySelector("#live-metrics-note"), btn=document.querySelector("#live-metrics-refresh");
+    if(!grid) return; if(btn){btn.disabled=true;btn.textContent="Refreshing…";}
+    try{
+      const m=await getInstituteLiveMetrics(i.instituteCode);
+      const values=[m.residents,m.pendingAdmissions,m.outsideResidents,m.vacantBeds,m.feeDueToday,m.openComplaints];
+      grid.querySelectorAll("article strong").forEach((el,index)=>el.textContent=String(values[index]??0));
+      note.textContent=`Outstanding fees: ₹${Number(m.outstandingAmount||0).toLocaleString("en-IN")} · ${m.pendingApprovals||0} pending approvals · Updated just now`;
+    }catch(err){note.textContent=`Live summary unavailable. ${humanError(err,"Tap Refresh to try again.")}`;}
+    finally{if(btn){btn.disabled=false;btn.textContent="Refresh";}}
+  };
+  document.querySelector("#live-metrics-refresh").onclick=paintLiveMetrics;
+  paintLiveMetrics();
   refreshAdminBadges();
   document.querySelector("#settings-card").onclick=()=>{state.screen="settings";render();};
   document.querySelector("#pdf-card").onclick=()=>{state.screen="pdf-reports";render();};

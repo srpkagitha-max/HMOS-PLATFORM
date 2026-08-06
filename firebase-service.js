@@ -20,6 +20,7 @@ import {
   where,
   limit,
   getDocs,
+  getCountFromServer,
   serverTimestamp,
   Timestamp,
   writeBatch,
@@ -987,6 +988,40 @@ export async function listBackupSnapshots(instituteCodeValue){const code=normali
 export async function findDuplicateAdmissions(input){const code=normalizeCode(input.instituteCode),phone=cleanText(input.studentPhone).replace(/\D/g,""),parent=cleanText(input.parentPhone).replace(/\D/g,""),name=cleanText(input.studentName).toLowerCase(),dob=cleanText(input.dateOfBirth),aadhaar=cleanText(input.aadhaarLast4);const q=query(collection(db,"students"),where("instituteCode","==",code),limit(1000));const snap=await getDocs(q);return snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.isDeleted&&((phone&&cleanText(x.studentPhone)===phone)||(name&&parent&&cleanText(x.studentName).toLowerCase()===name&&cleanText(x.parentPhone)===parent)||(dob&&aadhaar&&cleanText(x.dateOfBirth)===dob&&cleanText(x.aadhaarLast4)===aadhaar)));}
 
 
+
+export async function getInstituteLiveMetrics(instituteCodeValue) {
+  const instituteCode = normalizeCode(instituteCodeValue);
+  if (!instituteCode) throw Object.assign(new Error("Institute code missing"), { code: "institute-session-missing" });
+  const today = new Date().toISOString().slice(0, 10);
+  const countQuery = async (name, constraints = []) => {
+    const ref = query(collection(db, name), where("instituteCode", "==", instituteCode), ...constraints);
+    const snap = await getCountFromServer(ref);
+    return Number(snap.data().count || 0);
+  };
+  const [residents, pendingAdmissions, openComplaints, outsideResidents, pendingApprovals, roomsSnap, feesSnap] = await Promise.all([
+    countQuery("students", [where("accountStatus", "==", "active")]),
+    countQuery("pendingAdmissions", [where("status", "==", "pending")]),
+    countQuery("complaints", [where("status", "in", ["open", "in-review"])]).catch(() => countQuery("complaints")),
+    countQuery("movements", [where("status", "==", "outside")]),
+    countQuery("approvalRequests", [where("status", "==", "pending")]),
+    getDocs(query(collection(db, "rooms"), where("instituteCode", "==", instituteCode), limit(1000))),
+    getDocs(query(collection(db, "fees"), where("instituteCode", "==", instituteCode), limit(5000)))
+  ]);
+  let vacantBeds = 0, occupiedBeds = 0, maintenanceBeds = 0;
+  roomsSnap.docs.forEach(d => (d.data().beds || []).forEach(b => {
+    const status = b.isVisible === false ? "hidden" : (b.status || "vacant");
+    if (status === "vacant") vacantBeds += 1;
+    else if (status === "occupied") occupiedBeds += 1;
+    else if (status === "maintenance") maintenanceBeds += 1;
+  }));
+  let feeDueToday = 0, pendingFees = 0, outstandingAmount = 0;
+  feesSnap.docs.forEach(d => {
+    const f = d.data(); const balance = Number(f.balanceAmount || 0);
+    if (balance > 0) { pendingFees += 1; outstandingAmount += balance; }
+    if (balance > 0 && String(f.dueDate || "") === today) feeDueToday += 1;
+  });
+  return { residents, pendingAdmissions, openComplaints, outsideResidents, pendingApprovals, vacantBeds, occupiedBeds, maintenanceBeds, feeDueToday, pendingFees, outstandingAmount, updatedAt: new Date().toISOString() };
+}
 export async function getSystemHealth() {
   const startedAt = performance.now();
   const online = typeof navigator === "undefined" ? true : navigator.onLine;

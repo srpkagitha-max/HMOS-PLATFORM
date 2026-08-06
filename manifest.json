@@ -3,7 +3,7 @@
   "name": "HMOS V4 \u2014 Hostel Management Operating System",
   "short_name": "HMOS V4",
   "description": "Multi-Institute Hostel Management Platform",
-  "start_url": "./?v=4.3.0",
+  "start_url": "./?v=4.4.0",
   "scope": "./",
   "display": "standalone",
   "display_override": [
