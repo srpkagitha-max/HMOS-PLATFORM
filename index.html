@@ -7,61 +7,25 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <link rel="apple-touch-icon" href="/HMOS-PLATFORM/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/HMOS-PLATFORM/icon-192.png" />
-  <meta name="description" content="Hostel Management Operating System – Multi-Institute Hostel Management Platform" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <meta name="description" content="HMOS V4 Performance & Stability Core" />
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="//www.gstatic.com" />
-  <link rel="manifest" href="/HMOS-PLATFORM/manifest.json?v=3.4.0" />
-  <link rel="stylesheet" href="styles.css?v=3.5.3" />
-  <title>Hostel Management Operating System</title>
+  <link rel="manifest" href="./manifest.json?v=4.0.0" />
+  <link rel="stylesheet" href="./styles.css?v=4.0.0" />
+  <title>HMOS — Hostel Management Operating System</title>
   <style>
-    .boot-screen{min-height:100vh;background:#0f4d86;color:#fff;padding:18vh 8vw 8vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-    .boot-screen h1{font-size:clamp(42px,13vw,76px);letter-spacing:.18em;margin:0 0 36px}
-    .boot-card{max-width:540px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:22px;padding:22px}
-    .boot-line{height:14px;border-radius:999px;background:rgba(255,255,255,.24);margin:13px 0;overflow:hidden}
-    .boot-line::after{content:"";display:block;width:38%;height:100%;background:rgba(255,255,255,.65);border-radius:inherit;animation:boot 1.15s ease-in-out infinite alternate}
-    .boot-line.short{width:82%}.boot-status{margin:18px 0 0;font-size:15px;opacity:.9}
-    .boot-retry{display:none;margin-top:18px;border:0;border-radius:14px;padding:13px 18px;font-weight:700;color:#0b3b73;background:#fff}
-    @keyframes boot{from{transform:translateX(-15%)}to{transform:translateX(180%)}}
+    .boot-screen{min-height:100vh;background:#0f4d86;color:#fff;padding:18vh 8vw 8vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif}.boot-screen h1{font-size:clamp(42px,13vw,76px);letter-spacing:.18em;margin:0 0 36px}.boot-card{max-width:540px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:22px;padding:22px}.boot-line{height:14px;border-radius:999px;background:rgba(255,255,255,.24);margin:13px 0;overflow:hidden}.boot-line::after{content:"";display:block;width:38%;height:100%;background:rgba(255,255,255,.65);border-radius:inherit;animation:boot 1.15s ease-in-out infinite alternate}.boot-line.short{width:82%}.boot-status{margin:18px 0 0;font-size:15px;opacity:.9}.boot-retry{display:none;margin-top:18px;border:0;border-radius:14px;padding:13px 18px;font-weight:700;color:#0b3b73;background:#fff}@keyframes boot{from{transform:translateX(-15%)}to{transform:translateX(180%)}}
   </style>
 </head>
 <body>
-  <div id="app" aria-live="polite">
-    <main class="boot-screen" id="boot-screen">
-      <h1>HMOS</h1>
-      <div class="boot-card">
-        <div class="boot-line"></div><div class="boot-line short"></div>
-        <p class="boot-status" id="boot-status">Opening secure HMOS access…</p>
-        <button class="boot-retry" id="boot-retry" type="button">Reload App</button>
-      </div>
-    </main>
-  </div>
+  <div id="app" aria-live="polite"><main class="boot-screen"><h1>HMOS</h1><div class="boot-card"><div class="boot-line"></div><div class="boot-line short"></div><p class="boot-status" id="boot-status">Opening HMOS V4 secure core…</p><button class="boot-retry" id="boot-retry" type="button">Reload App</button></div></main></div>
   <noscript>JavaScript is required to use HMOS.</noscript>
   <script>
-    window.__HMOS_BOOT_TIMER__ = setTimeout(function () {
-      var status = document.getElementById('boot-status');
-      var retry = document.getElementById('boot-retry');
-      if (status) status.textContent = 'Network is taking longer than expected. Tap Reload App.';
-      if (retry) retry.style.display = 'inline-block';
-    }, 12000);
-    document.addEventListener('click', function (event) {
-      if (event.target && event.target.id === 'boot-retry') location.reload();
-    });
+    window.__HMOS_BOOT_TIMER__=setTimeout(()=>{const s=document.querySelector('#boot-status'),b=document.querySelector('#boot-retry');if(s)s.textContent='Startup is taking longer than expected. Check internet and retry.';if(b)b.style.display='inline-block';},15000);
+    document.addEventListener('click',e=>{if(e.target?.id==='boot-retry')location.reload();});
   </script>
-  <script>
-    // V3.7.2 update: do not unregister workers or delete caches during every startup.
-    // The versioned module URL below bypasses old cached JavaScript safely.
-    window.__HMOS_START_PHASE__ = "loading-main-module";
-  </script>
-  <script type="module">
-    import("./app-v3.7.2.js?v=3.7.2").catch(function(error){
-      console.error("HMOS startup failed:", error);
-      var status = document.getElementById("boot-status");
-      var retry = document.getElementById("boot-retry");
-      if (status) status.textContent = "HMOS startup error: " + (error && error.message ? error.message : String(error || "Unknown module error"));
-      if (retry) retry.style.display = "inline-block";
-    });
-  </script>
+  <script type="module">import('./app.js?v=4.0.0').catch(error=>{console.error('HMOS V4 startup failed',error);const s=document.querySelector('#boot-status'),b=document.querySelector('#boot-retry');if(s)s.textContent='HMOS startup error: '+(error?.message||String(error));if(b)b.style.display='inline-block';});</script>
 </body>
 </html>

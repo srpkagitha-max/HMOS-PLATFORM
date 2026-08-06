@@ -1,14 +1,15 @@
-# HMOS V3.5.4 — Premium Readable Typography
+# HMOS V4.0.0 — Performance & Stability Core (Phase 1)
 
-This release keeps the compact card and field layout from V3.5.3 while improving typography across:
+This build consolidates the runtime to one `app.js`, one `firebase-service.js`, and one `service-worker.js`.
 
-- Admission Form
-- Resident / Student Portal
-- Institute Admin Dashboard
-- Admin module pages
+## Phase 1 changes
+- Removed runtime dependence on old version-numbered JavaScript files.
+- Replaced cross-institute collection scans with institute-scoped Firestore queries.
+- Added safe result limits to heavy lists.
+- Added offline/online status banner and central startup error display.
+- Added network-first navigation caching and automatic removal of old caches.
+- Updated cache/session keys to V4.
+- Kept all V3.7.2 features and data paths compatible.
 
-The boxes remain compact and uniform. Headings, labels, card titles and supporting text are slightly larger for easier mobile use and a more premium visual hierarchy.
-
-
-## V3.7.0
-Approvals, notifications, audit logs, recycle bin, backup snapshots and duplicate-admission protection foundation.
+## Upload
+Upload every file in this folder to the repository root. Old versioned files can be removed after V4 is verified.

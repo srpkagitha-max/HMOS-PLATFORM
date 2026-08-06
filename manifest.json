@@ -1,19 +1,37 @@
 {
   "id": "/HMOS-PLATFORM/",
-  "name": "Hostel Management Operating System",
-  "short_name": "HMOS",
+  "name": "HMOS V4 \u2014 Hostel Management Operating System",
+  "short_name": "HMOS V4",
   "description": "Multi-Institute Hostel Management Platform",
-  "start_url": "/HMOS-PLATFORM/",
-  "scope": "/HMOS-PLATFORM/",
+  "start_url": "./?v=4.0.0",
+  "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait-primary",
   "background_color": "#edf4fb",
   "theme_color": "#0b3b73",
   "prefer_related_applications": false,
   "icons": [
-    {"src": "/HMOS-PLATFORM/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "/HMOS-PLATFORM/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "/HMOS-PLATFORM/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "/HMOS-PLATFORM/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/HMOS-PLATFORM/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/HMOS-PLATFORM/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
